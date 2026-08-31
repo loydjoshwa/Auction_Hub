@@ -1,0 +1,16 @@
+# Dependencies
+frontend/node_modules/
+
+# Environment variables
+.env
+backend/.env
+
+# Build files
+frontend/dist/
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
