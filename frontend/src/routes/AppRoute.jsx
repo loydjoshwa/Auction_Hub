@@ -10,10 +10,10 @@ function AppRoutes() {
         <Route path="/" element={<h1>Auction Hub Home</h1>} />
 
         <Route path="/login" element={<Login />} />  
-
+                    
         <Route path="/register" element={<Register />} />
 
-        <Route path="/verify-otp" element={<VerifyOTP />} />
+        <Route path="/verify-otp" element={<VerifyOTP />} /> 
 
         <Route path="/profile" element={<h1>Profile</h1>} />   
       </Routes>
