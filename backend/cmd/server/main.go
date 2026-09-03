@@ -50,4 +50,4 @@ func main() {
 
 	log.Println("Database migration completed successfully")
 	log.Println("Auction Hub server started")
-}
+} 
