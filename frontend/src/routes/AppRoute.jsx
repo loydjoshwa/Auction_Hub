@@ -5,7 +5,7 @@ import VerifyOTP from "../pages/auth/VerifyOTP";
 
 function AppRoutes() {
   return (
-    <BrowserRouter>
+    <BrowserRouter>   
       <Routes>
         <Route path="/" element={<h1>Auction Hub Home</h1>} />
 
