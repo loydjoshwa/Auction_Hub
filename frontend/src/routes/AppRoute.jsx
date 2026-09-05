@@ -17,7 +17,7 @@ function AppRoutes() {
 
         <Route path="/profile" element={<h1>Profile</h1>} />   
       </Routes>
-    </BrowserRouter>
+    </BrowserRouter>   
   );
 }      
 
