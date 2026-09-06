@@ -9,7 +9,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<h1>Auction Hub Home</h1>} />
 
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login />} />  
 
         <Route path="/register" element={<Register />} />
 
