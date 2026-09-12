@@ -15,7 +15,7 @@ function AppRoutes() {
 
         <Route path="/verify-otp" element={<VerifyOTP />} />
 
-        <Route path="/profile" element={<h1>Profile</h1>} />
+        <Route path="/profile" element={<h1>Profile</h1>} />   
       </Routes>
     </BrowserRouter>
   );
