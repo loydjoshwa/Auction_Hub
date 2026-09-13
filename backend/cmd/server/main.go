@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -16,28 +17,22 @@ import (
 	"auction-hub/modules/chat"
 	"auction-hub/modules/notifications"
 	"auction-hub/modules/orders"
-	"auction-hub/modules/reports"
 	"auction-hub/modules/sellers"
 	"auction-hub/modules/users"
 )
 
 func main() {
 
-	// Load environment variables
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Warning: .env file not found")
 	}
 
-	// Connect to PostgreSQL
 	database.ConnectDB()
-
-	// Connect to Redis
 	database.ConnectRedis()
 
 	var db *gorm.DB = database.DB
 
-	// Database migration
 	err = db.AutoMigrate(
 		&users.User{},
 		&sellers.Seller{},
@@ -48,9 +43,7 @@ func main() {
 		&chat.Conversation{},
 		&chat.Message{},
 		&notifications.Notification{},
-		&sellers.SellerVerification{},
 		&orders.Order{},
-		&reports.Report{},
 	)
 
 	if err != nil {
@@ -59,10 +52,8 @@ func main() {
 
 	log.Println("Database migration completed successfully")
 
-	// Create Gin router
 	router := gin.Default()
 
-	// Enable CORS for React frontend
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -70,22 +61,27 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// Health check API
 	router.GET("/api/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"message": "Auction Hub API is running",
 		})
 	})
 
-	// API routes
 	api := router.Group("/api")
 
+	// Authentication routes
 	auth.RegisterRoutes(api)
 
-	// Start server
+	// User routes
+	users.RegisterRoutes(api)
+
+	// Seller routes
+	sellers.RegisterRoutes(api)
+
 	log.Println("Auction Hub server started on http://localhost:8080")
 
 	err = router.Run(":8080")
+
 	if err != nil {
 		log.Fatal("Failed to start server:", err)
 	}

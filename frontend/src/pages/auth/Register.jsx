@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { apiService } from "../../services/api";
 
 function Register() {
   const navigate = useNavigate();
@@ -18,26 +19,10 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:8080/api/auth/send-otp",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email,
-          }),
-        }
-      );
+      // Step 1: Send OTP to provided email
+      await apiService.sendOTP(email);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to send OTP");
-      }
-
-      // Save registration details temporarily
+      // Save registration details temporarily in sessionStorage
       sessionStorage.setItem(
         "registrationData",
         JSON.stringify({
@@ -47,53 +32,68 @@ function Register() {
         })
       );
 
+      // Navigate to OTP Verification page
       navigate("/verify-otp");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to send OTP. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>Auction Hub</h1>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="brand-header">
+          <span className="brand-badge">Auction Hub</span>
+          <h1 className="brand-title">Create Account</h1>
+          <p className="brand-subtitle">
+            Sign up to start bidding and participating in live auctions
+          </p>
+        </div>
 
-        <h2 style={styles.heading}>Create Account</h2>
-
-        <p style={styles.subtitle}>
-          Create your account to start buying and selling.
-        </p>
+        {error && (
+          <div className="alert alert-error">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{error}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSendOTP}>
-          <div style={styles.inputGroup}>
-            <label>Name</label>
+          <div className="form-group">
+            <label className="form-label">Full Name</label>
             <input
               type="text"
-              placeholder="Enter your name"
+              className="form-input"
+              placeholder="e.g. John Doe"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label>Email</label>
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
             <input
               type="email"
-              placeholder="Enter your email"
+              className="form-input"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label>Password</label>
+          <div className="form-group">
+            <label className="form-label">Password</label>
             <input
               type="password"
-              placeholder="Enter your password"
+              className="form-input"
+              placeholder="Min. 6 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               minLength={6}
@@ -101,97 +101,32 @@ function Register() {
             />
           </div>
 
-          {error && <p style={styles.error}>{error}</p>}
-
-          <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? "Sending OTP..." : "Continue"}
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loading}
+            style={{ marginTop: "1rem" }}
+          >
+            {loading ? (
+              <>
+                <div className="spinner"></div>
+                Sending OTP...
+              </>
+            ) : (
+              "Continue & Verify Email"
+            )}
           </button>
         </form>
 
-        <p style={styles.bottomText}>
+        <p style={{ textAlign: "center", marginTop: "1.75rem", color: "var(--text-muted)", fontSize: "0.9rem" }}>
           Already have an account?{" "}
-          <button
-            type="button"
-            style={styles.link}
-            onClick={() => navigate("/login")}
-          >
-            Login
-          </button>
+          <Link to="/login" className="btn-link">
+            Log in here
+          </Link>
         </p>
       </div>
     </div>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    fontFamily: "Arial, sans-serif",
-  },
-
-  card: {
-    width: "400px",
-    padding: "40px",
-    backgroundColor: "#ffffff",
-    borderRadius: "12px",
-    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-  },
-
-  title: {
-    textAlign: "center",
-    marginBottom: "25px",
-  },
-
-  heading: {
-    marginBottom: "8px",
-  },
-
-  subtitle: {
-    color: "#666",
-    marginBottom: "25px",
-  },
-
-  inputGroup: {
-    display: "flex",
-    flexDirection: "column",
-    marginBottom: "18px",
-    gap: "7px",
-  },
-
-  button: {
-    width: "100%",
-    padding: "12px",
-    border: "none",
-    borderRadius: "6px",
-    backgroundColor: "#222",
-    color: "#ffffff",
-    fontSize: "16px",
-    cursor: "pointer",
-  },
-
-  error: {
-    color: "red",
-    fontSize: "14px",
-    marginBottom: "15px",
-  },
-
-  bottomText: {
-    textAlign: "center",
-    marginTop: "20px",
-    color: "#666",
-  },
-
-  link: {
-    border: "none",
-    background: "none",
-    color: "#0066cc",
-    cursor: "pointer",
-    fontSize: "15px",
-  },
-};
 
 export default Register;
