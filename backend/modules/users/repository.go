@@ -17,10 +17,19 @@ func NewRepository() *Repository {
 }
 
 func (r *Repository) FindUserByID(userID interface{}) (*User, error) {
-
 	var user User
+	var err error
 
-	err := r.DB.First(&user, userID).Error
+	switch v := userID.(type) {
+	case float64:
+		err = r.DB.First(&user, uint(v)).Error
+	case int:
+		err = r.DB.First(&user, uint(v)).Error
+	case uint:
+		err = r.DB.First(&user, v).Error
+	default:
+		err = r.DB.First(&user, userID).Error
+	}
 
 	if err != nil {
 		return nil, err

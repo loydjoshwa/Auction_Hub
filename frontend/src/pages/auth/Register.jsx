@@ -35,7 +35,11 @@ function Register() {
       // Navigate to OTP Verification page
       navigate("/verify-otp");
     } catch (err) {
-      setError(err.message || "Failed to send OTP. Please try again.");
+      if (err.status === 409 || err.message?.toLowerCase().includes("already registered")) {
+        setError("This email address is already registered. Please log in instead.");
+      } else {
+        setError(err.message || "Failed to send OTP. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

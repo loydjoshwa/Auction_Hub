@@ -71,11 +71,21 @@ func (s *Service) SendOTP(email string) error {
 
 	email = strings.ToLower(strings.TrimSpace(email))
 
+	// Check if email is already registered
+	_, err := s.Repository.FindUserByEmail(email)
+	if err == nil {
+		return errors.New("email already registered")
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
 	// Generate OTP
 	otp := GenerateOTP()
 
 	// Store OTP in Redis for 5 minutes
-	err := StoreOTP(email, otp)
+	err = StoreOTP(email, otp)
 	if err != nil {
 		return err
 	}
@@ -153,4 +163,62 @@ func (s *Service) Login(request LoginRequest) (*users.User, string, error) {
 	}
 
 	return user, token, nil
+}
+
+func (s *Service) SendForgotPasswordOTP(email string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	// Ensure account exists
+	_, err := s.Repository.FindUserByEmail(email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("user not found")
+		}
+		return err
+	}
+
+	// Generate OTP
+	otp := GenerateOTP()
+
+	// Store OTP in Redis for 5 minutes
+	err = StoreOTP(email, otp)
+	if err != nil {
+		return err
+	}
+
+	// Send OTP through Gmail
+	err = SendOTPEmail(email, otp)
+	if err != nil {
+		DeleteOTP(email)
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) ResetPassword(request ResetPasswordRequest) error {
+	request.Email = strings.ToLower(strings.TrimSpace(request.Email))
+	request.OTP = strings.TrimSpace(request.OTP)
+
+	// Verify OTP
+	storedOTP, err := GetOTP(request.Email)
+	if err != nil {
+		return errors.New("OTP expired or not found")
+	}
+
+	if storedOTP != request.OTP {
+		return errors.New("invalid OTP")
+	}
+
+	// Delete OTP after verification
+	DeleteOTP(request.Email)
+
+	// Hash new password
+	hashedPassword, err := utilis.HashPassword(request.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	// Update user password in database
+	return s.Repository.UpdatePassword(request.Email, hashedPassword)
 }

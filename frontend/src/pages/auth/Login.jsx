@@ -74,10 +74,16 @@ function Login() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
+              <Link to="/forgot-password" className="btn-link" style={{ fontSize: "0.85rem" }}>
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               className="form-input"
+              style={{ marginTop: "0.4rem" }}
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

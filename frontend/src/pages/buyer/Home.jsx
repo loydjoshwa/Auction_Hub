@@ -1,17 +1,14 @@
-import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 function Home() {
-  const { user, isLoggedIn } = useAuth();
-
   return (
-    <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "3rem 1.5rem" }}>
-      {/* Hero Banner Section */}
+    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+      {/* Compact Hero Section */}
       <div
         className="card"
         style={{
           background: "linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)",
-          padding: "4rem 2.5rem",
+          padding: "3rem 2rem",
           textAlign: "center",
           position: "relative",
           overflow: "hidden",
@@ -32,13 +29,9 @@ function Home() {
           }}
         />
 
-        <span className="brand-badge" style={{ marginBottom: "1.25rem" }}>
-          Welcome to
-        </span>
-
         <h1
           style={{
-            fontSize: "3.2rem",
+            fontSize: "2.8rem",
             fontWeight: "800",
             letterSpacing: "-0.03em",
             marginBottom: "0.5rem",
@@ -52,49 +45,35 @@ function Home() {
 
         <h2
           style={{
-            fontSize: "1.5rem",
+            fontSize: "1.35rem",
             fontWeight: "600",
             color: "#a5b4fc",
-            marginBottom: "1.5rem",
+            marginBottom: "1.25rem",
           }}
         >
-          Online Auction Marketplace
+          Discover Amazing Products. Place Your Bid. Win Your Deal.
         </h2>
 
         <p
           style={{
-            maxWidth: "600px",
-            margin: "0 auto 2.5rem auto",
+            maxWidth: "640px",
+            margin: "0 auto 2rem auto",
             color: "var(--text-muted)",
-            fontSize: "1.1rem",
+            fontSize: "1.05rem",
             lineHeight: "1.6",
           }}
         >
-          Experience real-time competitive bidding, verified listings, and secure transactions on the next-generation auction platform.
+          Explore exciting auctions, discover unique products, and compete with other bidders to get the items you want.
         </p>
 
-        {isLoggedIn ? (
-          <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: "1.25rem" }}>
-            <div className="alert alert-success" style={{ margin: 0, padding: "0.8rem 1.5rem" }}>
-              <span>Hello, <strong>{user?.name || "Member"}</strong>! You are currently logged in.</span>
-            </div>
-
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>
-              <Link to="/profile" className="btn btn-primary" style={{ width: "auto", padding: "0.85rem 2rem" }}>
-                View Profile Dashboard
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link to="/login" className="btn btn-primary" style={{ width: "auto", padding: "0.85rem 2.2rem" }}>
-              Sign In to Your Account
-            </Link>
-            <Link to="/register" className="btn btn-secondary" style={{ width: "auto", padding: "0.85rem 2.2rem" }}>
-              Create New Account
-            </Link>
-          </div>
-        )}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <button
+            className="btn btn-primary"
+            style={{ width: "auto", padding: "0.85rem 2.2rem" }}
+          >
+            Explore Auctions
+          </button>
+        </div>
       </div>
 
       {/* Feature Highlights Grid */}
@@ -103,7 +82,9 @@ function Home() {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           gap: "1.5rem",
-          marginTop: "3rem",
+          marginTop: "2.5rem",
+          maxWidth: "850px",
+          margin: "2.5rem auto 0 auto",
         }}
       >
         <div className="card">
@@ -122,39 +103,13 @@ function Home() {
               marginBottom: "1rem",
             }}
           >
-            ⚡
+            🔨
           </div>
           <h3 style={{ fontSize: "1.2rem", fontWeight: "700", marginBottom: "0.5rem" }}>
-            Real-Time Bidding
+            Discover & Bid
           </h3>
           <p style={{ color: "var(--text-muted)", fontSize: "0.925rem" }}>
-            Stay updated with live bid increments, instant notifications, and transparent countdowns.
-          </p>
-        </div>
-
-        <div className="card">
-          <div
-            style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "var(--radius-sm)",
-              background: "rgba(245, 158, 11, 0.15)",
-              color: "#fcd34d",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1.2rem",
-              fontWeight: "bold",
-              marginBottom: "1rem",
-            }}
-          >
-            🛡️
-          </div>
-          <h3 style={{ fontSize: "1.2rem", fontWeight: "700", marginBottom: "0.5rem" }}>
-            Secure Authentication
-          </h3>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.925rem" }}>
-            Protected with OTP email verification, encrypted passwords, and stateless JWT sessions.
+            Explore a wide range of products and place competitive bids on auctions you love.
           </p>
         </div>
 
@@ -174,13 +129,13 @@ function Home() {
               marginBottom: "1rem",
             }}
           >
-            🏷️
+            🛍️
           </div>
           <h3 style={{ fontSize: "1.2rem", fontWeight: "700", marginBottom: "0.5rem" }}>
-            Curated Categories
+            Buy & Sell
           </h3>
           <p style={{ color: "var(--text-muted)", fontSize: "0.925rem" }}>
-            Browse through verified electronics, collectibles, vehicles, and luxury items.
+            Find great deals as a buyer or create your own listings and sell products through Auction Hub.
           </p>
         </div>
       </div>

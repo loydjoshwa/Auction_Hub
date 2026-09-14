@@ -99,6 +99,28 @@ export const apiService = {
       },
     });
   },
+
+  /**
+   * Request OTP code for password reset.
+   * POST /api/auth/forgot-password
+   */
+  async forgotPassword(email) {
+    return request("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  /**
+   * Reset user password using email, OTP, and new password.
+   * POST /api/auth/reset-password
+   */
+  async resetPassword(email, otp, password) {
+    return request("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ email, otp, password }),
+    });
+  },
 };
 
 export default apiService;

@@ -28,7 +28,7 @@ func SendOTPEmail(toEmail string, otp string) error {
 	)
 
 	message := []byte(
-		"From: " + username + "\r\n" +
+		"From: AuctionHub <" + username + ">\r\n" +
 			"To: " + toEmail + "\r\n" +
 			"Subject: " + subject + "\r\n" +
 			"\r\n" +

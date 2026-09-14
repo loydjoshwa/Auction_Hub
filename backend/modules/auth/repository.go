@@ -32,3 +32,7 @@ func (r *Repository) FindUserByEmail(email string) (*users.User, error) {
 func (r *Repository) CreateUser(user *users.User) error {
 	return r.DB.Create(user).Error
 }
+
+func (r *Repository) UpdatePassword(email string, hashedPassword string) error {
+	return r.DB.Model(&users.User{}).Where("email = ?", email).Update("password", hashedPassword).Error
+}

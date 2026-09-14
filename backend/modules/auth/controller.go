@@ -74,6 +74,13 @@ func (c *Controller) SendOTP(ctx *gin.Context) {
 	err := c.Service.SendOTP(request.Email)
 
 	if err != nil {
+		if err.Error() == "email already registered" {
+			ctx.JSON(http.StatusConflict, gin.H{
+				"message": "Email already registered",
+			})
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to send OTP",
 		})
@@ -163,5 +170,67 @@ func (c *Controller) Login(ctx *gin.Context) {
 			"email": user.Email,
 			"role":  user.Role,
 		},
+	})
+}
+
+func (c *Controller) ForgotPassword(ctx *gin.Context) {
+	var request ForgotPasswordRequest
+
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid email address",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	err := c.Service.SendForgotPasswordOTP(request.Email)
+	if err != nil {
+		if err.Error() == "user not found" {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"message": "No account found with this email address",
+			})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to send reset OTP. Please try again.",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Reset OTP sent successfully to your email",
+	})
+}
+
+func (c *Controller) ResetPassword(ctx *gin.Context) {
+	var request ResetPasswordRequest
+
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid reset data. Ensure password is at least 6 characters.",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	err := c.Service.ResetPassword(request)
+	if err != nil {
+		if err.Error() == "OTP expired or not found" || err.Error() == "invalid OTP" {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to reset password. Please try again.",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Password reset successfully. You can now log in with your new password.",
 	})
 }
