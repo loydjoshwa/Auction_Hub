@@ -31,16 +31,6 @@ function Navbar() {
                 Home
               </Link>
             </li>
-            {isLoggedIn && (
-              <li>
-                <Link
-                  to="/profile"
-                  className={`nav-link ${isActive("/profile") ? "active" : ""}`}
-                >
-                  Profile
-                </Link>
-              </li>
-            )}
           </ul>
         </nav>
 
