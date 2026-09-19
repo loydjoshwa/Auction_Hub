@@ -41,7 +41,7 @@ function Profile() {
           if (err.status === 401 || err.status === 403) {
             logout();
             navigate("/login");
-            return;
+            return; 
           }
 
           setError(err.message || "Unable to load profile. Please try again.");

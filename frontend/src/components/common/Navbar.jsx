@@ -17,7 +17,7 @@ function Navbar() {
     <header className="navbar">
       <div className="navbar-container">
         <Link to="/" className="nav-brand">
-          <div className="nav-logo-icon">AH</div>
+          <div className="nav-logo-icon">A</div>
           <span className="nav-brand-text">Auction Hub</span>
         </Link>
 
