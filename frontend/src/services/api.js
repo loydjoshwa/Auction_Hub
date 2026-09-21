@@ -101,6 +101,21 @@ export const apiService = {
   },
 
   /**
+   * Update user profile name using JWT bearer token.
+   * PUT /api/users/profile
+   */
+  async updateProfile(token, name) {
+    return request("/api/users/profile", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name }),
+    });
+  },
+
+
+  /**
    * Request OTP code for password reset.
    * POST /api/auth/forgot-password
    */

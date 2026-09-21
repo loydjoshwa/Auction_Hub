@@ -37,3 +37,17 @@ func (r *Repository) FindUserByID(userID interface{}) (*User, error) {
 
 	return &user, nil
 }
+
+func (r *Repository) UpdateUserName(userID interface{}, newName string) (*User, error) {
+	user, err := r.FindUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.DB.Model(user).Update("name", newName).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}

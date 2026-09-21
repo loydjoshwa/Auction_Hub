@@ -19,5 +19,11 @@ func RegisterRoutes(router *gin.RouterGroup) {
 			middleware.AuthMiddleware(),
 			controller.GetProfile,
 		)
+
+		userRoutes.PUT(
+			"/profile",
+			middleware.AuthMiddleware(),
+			controller.UpdateProfile,
+		)
 	}
 }

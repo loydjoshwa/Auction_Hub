@@ -20,3 +20,7 @@ func (s *Service) GetUserByID(userID interface{}) (*User, error) {
 
 	return user, nil
 }
+
+func (s *Service) UpdateUserProfile(userID interface{}, name string) (*User, error) {
+	return s.Repository.UpdateUserName(userID, name)
+}

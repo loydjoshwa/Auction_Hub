@@ -10,13 +10,14 @@ import (
 	"gorm.io/gorm"
 
 	"auction-hub/database"
+	"auction-hub/modules/admin"
 	"auction-hub/modules/auth"
 	"auction-hub/modules/auctions"
 	"auction-hub/modules/bids"
 	"auction-hub/modules/categories"
 	"auction-hub/modules/chat"
 	"auction-hub/modules/notifications"
-	"auction-hub/modules/orders" 
+	"auction-hub/modules/orders"
 	"auction-hub/modules/sellers"
 	"auction-hub/modules/users"
 )
@@ -77,6 +78,9 @@ func main() {
 
 	// User routes
 	users.RegisterRoutes(api)
+
+	// Admin routes
+	admin.RegisterRoutes(api)
 
 	log.Println("Auction Hub server started on http://localhost:8080")
 

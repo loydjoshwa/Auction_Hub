@@ -13,6 +13,8 @@ function Profile() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -67,17 +69,39 @@ function Profile() {
 
   const handleEditProfile = () => {
     setEditName(profile?.name || "");
+    setSaveError("");
     setIsEditing((prev) => !prev);
   };
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (!editName.trim()) return;
-    const updated = { ...profile, name: editName.trim() };
-    setProfile(updated);
-    updateUser(updated);
-    setIsEditing(false);
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+
+    setSaving(true);
+    setSaveError("");
+
+    try {
+      const response = await apiService.updateProfile(token, trimmed);
+      const updatedUser = response?.user || response;
+
+      if (updatedUser) {
+        setProfile(updatedUser);
+        updateUser(updatedUser);
+      }
+      setIsEditing(false);
+    } catch (err) {
+      if (err.status === 401 || err.status === 403) {
+        logout();
+        navigate("/login");
+        return;
+      }
+      setSaveError(err.message || "Failed to update profile name. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
+
 
   const getInitials = (name) => {
     if (!name) return "U";
@@ -116,6 +140,37 @@ function Profile() {
             background: "linear-gradient(90deg, var(--primary), var(--accent))",
           }}
         />
+
+        {/* Top Header Action: Close Profile */}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1.25rem" }}>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="btn btn-secondary"
+            title="Close Profile and return to Home"
+            aria-label="Close Profile"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.45rem",
+              padding: "0.4rem 0.9rem",
+              fontSize: "0.85rem",
+              fontWeight: "600",
+              borderRadius: "var(--radius-sm)",
+              width: "auto",
+              cursor: "pointer",
+              background: "rgba(255, 255, 255, 0.05)",
+              border: "1px solid var(--bg-card-border)",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+            Close
+          </button>
+        </div>
+
 
         {loading ? (
           <div style={{ padding: "3rem 0", textAlign: "center" }}>
@@ -266,11 +321,24 @@ function Profile() {
                 <h3 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "0.75rem", color: "var(--text-main)" }}>
                   Edit Profile Name
                 </h3>
+
+                {saveError && (
+                  <div className="alert alert-error" style={{ marginBottom: "1rem" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{saveError}</span>
+                  </div>
+                )}
+
                 <form onSubmit={handleSaveProfile} style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
                   <input
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
+                    disabled={saving}
                     style={{
                       flex: 1,
                       minWidth: "200px",
@@ -288,13 +356,15 @@ function Profile() {
                     <button
                       type="submit"
                       className="btn btn-primary"
+                      disabled={saving}
                       style={{ width: "auto", padding: "0.5rem 1.1rem", fontSize: "0.85rem" }}
                     >
-                      Save
+                      {saving ? "Saving..." : "Save"}
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsEditing(false)}
+                      disabled={saving}
                       className="btn btn-secondary"
                       style={{ width: "auto", padding: "0.5rem 1.1rem", fontSize: "0.85rem" }}
                     >
@@ -304,6 +374,7 @@ function Profile() {
                 </form>
               </div>
             )}
+
 
             {/* Section 1: Account Activity */}
             <div style={{ marginBottom: "2.25rem" }}>
@@ -395,7 +466,7 @@ function Profile() {
             {/* Section 2: Account Actions */}
             <div>
               <h2 style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--text-main)", marginBottom: "1rem", letterSpacing: "-0.01em" }}>
-                Account Actions
+                Account Action
               </h2>
 
               <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
@@ -404,7 +475,7 @@ function Profile() {
                   className="btn btn-danger"
                   style={{ width: "auto", padding: "0.75rem 1.75rem" }}
                 >
-                  Logout Account
+                  Logout
                 </button>
               </div>
             </div>
