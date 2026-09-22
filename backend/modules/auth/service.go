@@ -146,6 +146,11 @@ func (s *Service) Login(request LoginRequest) (*users.User, string, error) {
 		return nil, "", err
 	}
 
+	// Check if user account is blocked
+	if user.IsBlocked {
+		return nil, "", errors.New("user is blocked")
+	}
+
 	// Check password
 	if !utilis.CheckPassword(request.Password, user.Password) {
 		return nil, "", errors.New("invalid email or password")

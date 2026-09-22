@@ -6,16 +6,14 @@ const API_BASE_URL = "http://localhost:8080";
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  const defaultHeaders = {
-    "Content-Type": "application/json",
-  };
+  const headers = { ...options.headers };
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = headers["Content-Type"] || "application/json";
+  }
 
   const config = {
     ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
+    headers,
   };
 
   try {
@@ -134,6 +132,148 @@ export const apiService = {
     return request("/api/auth/reset-password", {
       method: "POST",
       body: JSON.stringify({ email, otp, password }),
+    });
+  },
+
+  /**
+   * Fetch admin dashboard analytics.
+   * GET /api/admin/dashboard
+   */
+  async getAdminDashboard(token) {
+    return request("/api/admin/dashboard", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch users with search and status query filtering for admin.
+   * GET /api/admin/users?search=...&status=...
+   */
+  async getAdminUsers(token, search = "", status = "") {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (status) params.append("status", status);
+
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    return request(`/api/admin/users${queryString}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Block user by ID.
+   * PATCH /api/admin/users/:id/block
+   */
+  async blockUser(token, userId) {
+    return request(`/api/admin/users/${userId}/block`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Unblock user by ID.
+   * PATCH /api/admin/users/:id/unblock
+   */
+  async unblockUser(token, userId) {
+    return request(`/api/admin/users/${userId}/unblock`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch products belonging to the logged in user.
+   * GET /api/products/my
+   */
+  async getMyProducts(token) {
+    return request("/api/products/my", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Create a new product.
+   * POST /api/products
+   */
+  async createProduct(token, formData) {
+    return request("/api/products", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+  },
+
+  /**
+   * Fetch a single product by ID.
+   * GET /api/products/:id
+   */
+  async getProductById(token, id) {
+    return request(`/api/products/${id}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Update an existing product.
+   * PUT /api/products/:id
+   */
+  async updateProduct(token, id, formData) {
+    return request(`/api/products/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+  },
+
+  /**
+   * Delete a product by ID.
+   * DELETE /api/products/:id
+   */
+  async deleteProduct(token, id) {
+    return request(`/api/products/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Create an auction for a product.
+   * POST /api/auctions
+   */
+  async createAuction(token, { productId, startingPrice, duration }) {
+    return request("/api/auctions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        product_id: productId,
+        starting_price: parseFloat(startingPrice),
+        duration: duration,
+      }),
     });
   },
 };

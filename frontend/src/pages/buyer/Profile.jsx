@@ -389,6 +389,38 @@ function Profile() {
                   gap: "1rem",
                 }}
               >
+                {/* My Products Item */}
+                <div
+                  onClick={() => navigate("/products")}
+                  style={{
+                    padding: "1.25rem 1rem",
+                    background: "rgba(255, 255, 255, 0.02)",
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--bg-card-border)",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(99, 102, 241, 0.1)";
+                    e.currentTarget.style.borderColor = "rgba(99, 102, 241, 0.4)";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.02)";
+                    e.currentTarget.style.borderColor = "var(--bg-card-border)";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                >
+                  <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>📦</div>
+                  <div style={{ fontSize: "0.95rem", fontWeight: "700", color: "var(--text-main)", marginBottom: "0.2rem" }}>
+                    My Products
+                  </div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                    Manage items & listings
+                  </div>
+                </div>
+
                 <div
                   style={{
                     padding: "1.25rem 1rem",
@@ -434,7 +466,7 @@ function Profile() {
                     textAlign: "center",
                   }}
                 >
-                  <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>📦</div>
+                  <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>🛒</div>
                   <div style={{ fontSize: "0.95rem", fontWeight: "700", color: "var(--text-main)", marginBottom: "0.2rem" }}>
                     Orders
                   </div>

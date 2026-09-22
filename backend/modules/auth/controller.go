@@ -155,6 +155,13 @@ func (c *Controller) Login(ctx *gin.Context) {
 			return
 		}
 
+		if err.Error() == "user is blocked" {
+			ctx.JSON(http.StatusForbidden, gin.H{
+				"message": "Your account has been blocked",
+			})
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Login failed",
 		})

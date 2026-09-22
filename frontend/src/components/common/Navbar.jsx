@@ -12,39 +12,75 @@ function Navbar() {
   };
 
   const isActive = (path) => location.pathname === path;
+  const isAdmin = isLoggedIn && user?.role === "admin";
 
   return (
     <header className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="nav-brand">
+        <Link to={isAdmin ? "/admin" : "/"} className="nav-brand">
           <div className="nav-logo-icon">A</div>
           <span className="nav-brand-text">Auction Hub</span>
         </Link>
 
         <nav>
           <ul className="nav-links">
-            <li>
-              <Link
-                to="/"
-                className={`nav-link ${isActive("/") ? "active" : ""}`}
-              >
-                Home
-              </Link>
-            </li>
+            {isAdmin ? (
+              <>
+                <li>
+                  <Link
+                    to="/admin"
+                    className={`nav-link ${isActive("/admin") ? "active" : ""}`}
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/admin/users"
+                    className={`nav-link ${isActive("/admin/users") ? "active" : ""}`}
+                  >
+                    Manage Users
+                  </Link>
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <Link
+                    to="/"
+                    className={`nav-link ${isActive("/") ? "active" : ""}`}
+                  >
+                    Home
+                  </Link>
+                </li>
+                {isLoggedIn && (
+                  <li>
+                    <Link
+                      to="/products"
+                      className={`nav-link ${isActive("/products") ? "active" : ""}`}
+                    >
+                      My Products
+                    </Link>
+                  </li>
+                )}
+              </>
+            )}
           </ul>
         </nav>
 
         <div className="nav-user-info">
           {isLoggedIn ? (
             <>
-              <Link to="/profile" style={{ textDecoration: "none" }}>
-                <div className="user-avatar-badge">
-                  <div className="avatar-circle">
-                    {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+              {!isAdmin && (
+                <Link to="/profile" style={{ textDecoration: "none" }}>
+                  <div className="user-avatar-badge">
+                    <div className="avatar-circle">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                    </div>
+                    <span className="user-display-name">{user?.name || "User"}</span>
                   </div>
-                  <span className="user-display-name">{user?.name || "User"}</span>
-                </div>
-              </Link>
+                </Link>
+              )}
 
               <button
                 onClick={handleLogout}

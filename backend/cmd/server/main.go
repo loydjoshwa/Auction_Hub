@@ -18,6 +18,7 @@ import (
 	"auction-hub/modules/chat"
 	"auction-hub/modules/notifications"
 	"auction-hub/modules/orders"
+	"auction-hub/modules/products"
 	"auction-hub/modules/sellers"
 	"auction-hub/modules/users"
 )
@@ -45,6 +46,7 @@ func main() {
 		&chat.Message{},
 		&notifications.Notification{},
 		&orders.Order{},
+		&products.Product{},
 	)
 
 	if err != nil {
@@ -54,6 +56,9 @@ func main() {
 	log.Println("Database migration completed successfully")
 
 	router := gin.Default()
+
+	// Serve static upload directory
+	router.Static("/uploads", "./uploads")
 
 	router.Use(cors.New(cors.Config{
 		AllowOriginFunc: func(origin string) bool {
@@ -81,6 +86,12 @@ func main() {
 
 	// Admin routes
 	admin.RegisterRoutes(api)
+
+	// Product routes
+	products.RegisterRoutes(api)
+
+	// Auction routes
+	auctions.RegisterRoutes(api)
 
 	log.Println("Auction Hub server started on http://localhost:8080")
 

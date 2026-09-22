@@ -13,12 +13,11 @@ func RegisterRoutes(router *gin.RouterGroup) {
 	controller := NewController(service)
 
 	adminRoutes := router.Group("/admin")
+	adminRoutes.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
 	{
-		adminRoutes.GET(
-			"/users",
-			middleware.AuthMiddleware(),
-			middleware.RoleMiddleware("admin"),
-			controller.GetAllUsers,
-		)
+		adminRoutes.GET("/dashboard", controller.GetDashboardAnalytics)
+		adminRoutes.GET("/users", controller.GetAllUsers)
+		adminRoutes.PATCH("/users/:id/block", controller.BlockUser)
+		adminRoutes.PATCH("/users/:id/unblock", controller.UnblockUser)
 	}
 }

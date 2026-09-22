@@ -25,8 +25,12 @@ function Login() {
       // Save token and user details to context (and localStorage)
       login(data.token, data.user);
 
-      // Navigate to Home page
-      navigate("/");
+      // Navigate based on user role
+      if (data.user?.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       if (err.status === 401) {
         setError("Invalid email or password. Please try again.");

@@ -5,6 +5,9 @@ import VerifyOTP from "../pages/auth/VerifyOTP";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import Home from "../pages/buyer/Home";
 import Profile from "../pages/buyer/Profile";
+import MyProducts from "../pages/seller/MyProducts";
+import Dashboard from "../pages/admin/Dashboard";
+import ManageUsers from "../pages/admin/ManageUsers";
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 import { useAuth } from "../context/AuthContext";
@@ -19,10 +22,27 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function AdminRoute({ children }) {
+  const { isLoggedIn, user } = useAuth();
+
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role !== "admin") {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
 function GuestRoute({ children }) {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
 
   if (isLoggedIn) {
+    if (user?.role === "admin") {
+      return <Navigate to="/admin" replace />;
+    }
     return <Navigate to="/" replace />;
   }
 
@@ -83,6 +103,30 @@ function AppRoutes() {
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/products"
+            element={
+              <ProtectedRoute>
+                <MyProducts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Dashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <ManageUsers />
+              </AdminRoute>
             }
           />
           {/* Fallback redirect */}
