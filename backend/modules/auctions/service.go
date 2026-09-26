@@ -96,9 +96,22 @@ func (s *Service) CreateAuction(userID uint, productID uint, startingPrice float
 		return nil, err
 	}
 
+	// Create primary auction image if product has image URL
+	if product.ImageURL != "" {
+		_ = s.Repository.CreateAuctionImage(&AuctionImage{
+			AuctionID: auction.ID,
+			ImageURL:  product.ImageURL,
+			IsPrimary: true,
+		})
+	}
+
 	// Update Product status
 	product.Status = "In Auction"
 	_ = s.ProductRepository.UpdateProduct(product)
 
 	return auction, nil
+}
+
+func (s *Service) GetActiveAuctions() ([]Auction, error) {
+	return s.Repository.GetActiveAuctions()
 }

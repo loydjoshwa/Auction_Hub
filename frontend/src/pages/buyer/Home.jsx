@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
+
 function Home() {
+  const navigate = useNavigate();
   return (
     <div
       style={{
@@ -7,6 +10,24 @@ function Home() {
         padding: "3rem 1.5rem",
       }}
     >
+      {/* Main Page Title */}
+      <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+        <h1
+          style={{
+            fontSize: "3rem",
+            fontWeight: "800",
+            letterSpacing: "-0.03em",
+            marginBottom: "0.5rem",
+            background:
+              "linear-gradient(90deg, #ffffff 0%, #cbd5e1 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
+          Auction Hub
+        </h1>
+      </div>
+
       {/* Three Banner Layout */}
       <div
         className="home-page-banners"
@@ -70,12 +91,12 @@ function Home() {
           </p>
         </div>
 
-        {/* ================= CENTER - AUCTION HUB ================= */}
+        {/* ================= CENTER BANNER ================= */}
         <div
           className="card"
           style={{
             minHeight: "360px",
-            padding: "2.5rem",
+            padding: "2.5rem 2rem",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
@@ -89,43 +110,38 @@ function Home() {
             boxShadow: "var(--shadow-lg)",
           }}
         >
-          <span
+          <div
             style={{
-              display: "inline-block",
-              width: "fit-content",
-              padding: "0.4rem 0.8rem",
-              marginBottom: "1.2rem",
-              borderRadius: "999px",
+              width: "48px",
+              height: "48px",
+              borderRadius: "var(--radius-sm)",
               background: "rgba(99, 102, 241, 0.15)",
               color: "#a5b4fc",
-              fontSize: "0.75rem",
-              fontWeight: "700",
-              letterSpacing: "0.08em",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.4rem",
+              marginBottom: "1.2rem",
             }}
           >
-            AUCTION HUB
-          </span>
+            🚀
+          </div>
 
-          <h1
+          <h2
             style={{
-              fontSize: "2.7rem",
-              fontWeight: "800",
-              letterSpacing: "-0.03em",
-              marginBottom: "1rem",
-              background:
-                "linear-gradient(90deg, #ffffff 0%, #cbd5e1 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              fontSize: "1.5rem",
+              fontWeight: "700",
+              marginBottom: "0.8rem",
             }}
           >
-            Auction Hub
-          </h1>
+            Featured Marketplace
+          </h2>
 
           <p
             style={{
               maxWidth: "450px",
               color: "var(--text-muted)",
-              fontSize: "1rem",
+              fontSize: "0.95rem",
               lineHeight: "1.6",
               marginBottom: "1.8rem",
             }}
@@ -135,6 +151,7 @@ function Home() {
 
           <button
             className="btn btn-primary"
+            onClick={() => navigate("/auctions")}
             style={{
               width: "fit-content",
               padding: "0.8rem 1.7rem",

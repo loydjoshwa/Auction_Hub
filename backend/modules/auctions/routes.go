@@ -17,5 +17,6 @@ func RegisterRoutes(router *gin.RouterGroup) {
 	auctionRoutes.Use(middleware.AuthMiddleware())
 	{
 		auctionRoutes.POST("", controller.CreateAuction)
+		auctionRoutes.GET("", controller.GetActiveAuctions)
 	}
 }

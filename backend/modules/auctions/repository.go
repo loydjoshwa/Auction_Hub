@@ -20,6 +20,10 @@ func (r *Repository) CreateAuction(auction *Auction) error {
 	return r.DB.Create(auction).Error
 }
 
+func (r *Repository) CreateAuctionImage(auctionImage *AuctionImage) error {
+	return r.DB.Create(auctionImage).Error
+}
+
 func (r *Repository) GetActiveAuctionByProductID(productID uint) (*Auction, error) {
 	var auction Auction
 	err := r.DB.Where("product_id = ? AND status = ?", productID, "active").First(&auction).Error
@@ -27,4 +31,13 @@ func (r *Repository) GetActiveAuctionByProductID(productID uint) (*Auction, erro
 		return nil, err
 	}
 	return &auction, nil
+}
+
+func (r *Repository) GetActiveAuctions() ([]Auction, error) {
+	var auctions []Auction
+	err := r.DB.Preload("Product").Preload("Seller").Where("status = ?", "active").Order("created_at desc").Find(&auctions).Error
+	if err != nil {
+		return nil, err
+	}
+	return auctions, nil
 }

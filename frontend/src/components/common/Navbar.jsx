@@ -54,14 +54,24 @@ function Navbar() {
                   </Link>
                 </li>
                 {isLoggedIn && (
-                  <li>
-                    <Link
-                      to="/products"
-                      className={`nav-link ${isActive("/products") ? "active" : ""}`}
-                    >
-                      My Products
-                    </Link>
-                  </li>
+                  <>
+                    <li>
+                      <Link
+                        to="/auctions"
+                        className={`nav-link ${isActive("/auctions") ? "active" : ""}`}
+                      >
+                        Auctions
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/products"
+                        className={`nav-link ${isActive("/products") ? "active" : ""}`}
+                      >
+                        My Products
+                      </Link>
+                    </li>
+                  </>
                 )}
               </>
             )}

@@ -22,6 +22,7 @@ function MyProducts() {
 
   // Place in Auction Modal State
   const [placeAuctionProduct, setPlaceAuctionProduct] = useState(null);
+  const [savingAuction, setSavingAuction] = useState(false);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -102,9 +103,21 @@ function MyProducts() {
     setSuccessMsg("");
   };
 
-  const handlePlaceAuctionSubmit = (auctionData) => {
-    // Place auction button is non-functional for now as requested
-    setPlaceAuctionProduct(null);
+  const handlePlaceAuctionSubmit = async (auctionData) => {
+    setSavingAuction(true);
+    setError("");
+    setSuccessMsg("");
+
+    try {
+      await apiService.createAuction(token, auctionData);
+      setSuccessMsg("Product successfully placed in auction!");
+      setPlaceAuctionProduct(null);
+      fetchProducts();
+    } catch (err) {
+      setError(err.message || "Failed to place product in auction.");
+    } finally {
+      setSavingAuction(false);
+    }
   };
 
   const getImageSrc = (url) => {
@@ -308,6 +321,7 @@ function MyProducts() {
         onClose={() => setPlaceAuctionProduct(null)}
         onPlaceAuction={handlePlaceAuctionSubmit}
         product={placeAuctionProduct}
+        saving={savingAuction}
       />
 
       {/* Delete Confirmation Modal */}

@@ -5,6 +5,7 @@ import VerifyOTP from "../pages/auth/VerifyOTP";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import Home from "../pages/buyer/Home";
 import Profile from "../pages/buyer/Profile";
+import Auctions from "../pages/buyer/Auctions";
 import MyProducts from "../pages/seller/MyProducts";
 import Dashboard from "../pages/admin/Dashboard";
 import ManageUsers from "../pages/admin/ManageUsers";
@@ -110,6 +111,14 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <MyProducts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/auctions"
+            element={
+              <ProtectedRoute>
+                <Auctions />
               </ProtectedRoute>
             }
           />

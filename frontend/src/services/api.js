@@ -260,6 +260,19 @@ export const apiService = {
   },
 
   /**
+   * Fetch all active/public auctions.
+   * GET /api/auctions
+   */
+  async getAuctions(token) {
+    return request("/api/auctions", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
    * Create an auction for a product.
    * POST /api/auctions
    */

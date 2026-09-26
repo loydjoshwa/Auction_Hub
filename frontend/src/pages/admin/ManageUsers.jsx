@@ -77,9 +77,9 @@ function ManageUsers() {
 
       let res;
       if (actionType === "block") {
-        res = await apiService.blockUser(token, user.ID);
+        res = await apiService.blockUser(token, user.id);
       } else {
-        res = await apiService.unblockUser(token, user.ID);
+        res = await apiService.unblockUser(token, user.id);
       }
 
       setSuccessMessage(res.message || `User ${actionType}ed successfully`);
@@ -123,7 +123,7 @@ function ManageUsers() {
       <div className="admin-header">
         <div>
           <h1 className="admin-title">Manage Users</h1>
-    
+          <p className="admin-subtitle">View and manage system user accounts</p>
         </div>
         <div className="admin-nav-actions">
           <Link to="/admin" className="btn btn-secondary" style={{ width: "auto" }}>
@@ -210,7 +210,7 @@ function ManageUsers() {
       ) : usersList.length === 0 ? (
         <div className="empty-state-card">
           <h3>No users found</h3>
-          <p>No user accounts found</p>
+          <p>No user accounts matched your search criteria.</p>
         </div>
       ) : (
         <div className="table-responsive">
@@ -227,28 +227,32 @@ function ManageUsers() {
             </thead>
             <tbody>
               {usersList.map((user) => {
-                const isSelf = currentUser?.id === user.ID;
+                const isSelf = currentUser?.id === user.id;
                 return (
-                  <tr key={user.ID}>
+                  <tr key={user.id}>
                     <td className="user-name-cell">
-                      <div className="table-avatar">{user.Name?.charAt(0).toUpperCase() || "U"}</div>
-                      <span>{user.Name}</span>
+                      <div className="table-avatar">
+                        {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                      </div>
+                      <span>{user.name}</span>
                       {isSelf && <span className="self-badge">(You)</span>}
                     </td>
-                    <td>{user.Email}</td>
+                    <td>{user.email}</td>
                     <td>
-                      <span className={`badge badge-${user.Role || "user"}`}>{user.Role || "user"}</span>
+                      <span className={`badge badge-${(user.role || "user").toLowerCase()}`}>
+                        {(user.role || "USER").toUpperCase()}
+                      </span>
                     </td>
                     <td>
-                      {user.IsBlocked ? (
+                      {user.isBlocked ? (
                         <span className="badge badge-blocked-status">Blocked</span>
                       ) : (
                         <span className="badge badge-active-status">Active</span>
                       )}
                     </td>
-                    <td>{formatDate(user.CreatedAt)}</td>
+                    <td>{formatDate(user.createdAt)}</td>
                     <td style={{ textAlign: "right" }}>
-                      {user.IsBlocked ? (
+                      {user.isBlocked ? (
                         <button
                           className="btn btn-secondary action-btn-unblock"
                           onClick={() => openConfirmation(user, "unblock")}
@@ -283,7 +287,7 @@ function ManageUsers() {
             </h3>
             <p className="modal-body">
               Are you sure you want to {confirmModal.actionType}{" "}
-              <strong>{confirmModal.user?.Name}</strong> ({confirmModal.user?.Email})?
+              <strong>{confirmModal.user?.name}</strong> ({confirmModal.user?.email})?
               {confirmModal.actionType === "block" &&
                 " They will no longer be able to log in to their account."}
             </p>

@@ -35,10 +35,25 @@ func main() {
 
 	var db *gorm.DB = database.DB
 
+	// 1. Migrate base tables first (Product before Auction)
 	err = db.AutoMigrate(
 		&users.User{},
 		&sellers.Seller{},
 		&categories.Category{},
+		&products.Product{},
+	)
+	if err != nil {
+		log.Fatal("Failed to migrate base tables:", err)
+	}
+
+	// 2. Safe cleanup of orphan auction records referencing non-existent products before applying FK constraints
+	if db.Migrator().HasTable("auctions") {
+		db.Exec("DELETE FROM auction_images WHERE auction_id IN (SELECT id FROM auctions WHERE product_id NOT IN (SELECT id FROM products))")
+		db.Exec("DELETE FROM auctions WHERE product_id NOT IN (SELECT id FROM products)")
+	}
+
+	// 3. Migrate dependent tables with foreign key constraints
+	err = db.AutoMigrate(
 		&auctions.Auction{},
 		&bids.Bid{},
 		&auctions.AuctionImage{},
@@ -46,11 +61,9 @@ func main() {
 		&chat.Message{},
 		&notifications.Notification{},
 		&orders.Order{},
-		&products.Product{},
 	)
-
 	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
+		log.Fatal("Failed to migrate database tables:", err)
 	}
 
 	log.Println("Database migration completed successfully")

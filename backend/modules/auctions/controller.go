@@ -85,3 +85,18 @@ func (c *Controller) CreateAuction(ctx *gin.Context) {
 		"auction": auction,
 	})
 }
+
+// GET /api/auctions
+func (c *Controller) GetActiveAuctions(ctx *gin.Context) {
+	auctions, err := c.Service.GetActiveAuctions()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch active auctions",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"auctions": auctions,
+	})
+}
