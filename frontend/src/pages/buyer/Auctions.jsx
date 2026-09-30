@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { apiService } from "../../services/api";
 
 function Auctions() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [now, setNow] = useState(Date.now());
 
   const fetchAuctions = async () => {
     setLoading(true);
@@ -15,7 +18,7 @@ function Auctions() {
       const res = await apiService.getAuctions(token);
       setAuctions(res.auctions || []);
     } catch (err) {
-      setError(err.message || "Failed to load public auctions.");
+      setError(err.message || "Failed to load active auctions.");
     } finally {
       setLoading(false);
     }
@@ -27,41 +30,39 @@ function Auctions() {
     }
   }, [token]);
 
+  // Update timer every second for card countdowns
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const getImageSrc = (url) => {
     if (!url) return "";
     if (url.startsWith("http")) return url;
     return `http://localhost:8080${url}`;
   };
 
-  const formatEndTime = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = date - now;
-    if (diffMs <= 0) return "Ended";
+  const getRemainingTime = (dateStr) => {
+    if (!dateStr) return { text: "No limit", isExpired: false };
+    const end = new Date(dateStr).getTime();
+    const diff = end - now;
 
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
+    if (diff <= 0) return { text: "Auction Ended", isExpired: true };
 
-    if (diffDays > 0) {
-      return `${diffDays}d ${diffHours % 24}h left`;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+    if (days > 0) {
+      return { text: `Ends in ${days}d ${hours % 24}h`, isExpired: false };
     }
-    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    if (diffHours > 0) {
-      return `${diffHours}h ${diffMins}m left`;
+    if (hours > 0) {
+      return { text: `Ends in ${hours}h ${mins}m`, isExpired: false };
     }
-    return `${diffMins}m left`;
-  };
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return { text: `Ends in ${mins}m ${secs}s`, isExpired: false };
   };
 
   const formatPrice = (amount) => {
@@ -143,17 +144,19 @@ function Auctions() {
           </p>
         </div>
       ) : (
-        /* Compact Responsive Auctions Grid */
+        /* Professional Compact Auction Grid */
         <div className="auctions-compact-grid">
           {auctions.map((auction) => {
             const imageUrl = auction.product?.imageUrl || (auction.images && auction.images[0]?.imageUrl) || "";
             const title = auction.title || auction.product?.name || "Untitled Auction";
             const description = auction.description || auction.product?.description || "No description available.";
-            const sellerName = auction.seller?.name || `Seller #${auction.sellerId}`;
+            const bidCount = auction.bidCount !== undefined ? auction.bidCount : 0;
+            const remaining = getRemainingTime(auction.endTime);
+            const isEnded = remaining.isExpired || auction.status?.toLowerCase() !== "active";
 
             return (
               <div key={auction.id} className="auction-card-compact">
-                {/* Image Section with ACTIVE Badge Overlay */}
+                {/* Image Section with Status Badge Overlay */}
                 <div className="auction-card-thumb-wrapper">
                   <img
                     src={getImageSrc(imageUrl)}
@@ -164,8 +167,8 @@ function Auctions() {
                       e.target.src = "https://via.placeholder.com/300x180?text=No+Auction+Image";
                     }}
                   />
-                  <span className="auction-active-badge">
-                    ● {(auction.status || "ACTIVE").toUpperCase()}
+                  <span className={`auction-status-badge ${isEnded ? "ended" : "active"}`}>
+                    ● {isEnded ? "ENDED" : "ACTIVE"}
                   </span>
                 </div>
 
@@ -178,40 +181,40 @@ function Auctions() {
                     {description}
                   </p>
 
-                  {/* Pricing Box */}
+                  {/* Prominent Current Bid Box */}
                   <div className="auction-price-box">
-                    <div className="price-row starting-price-row">
-                      <span className="price-label">Starting Price:</span>
-                      <span className="price-val starting-val">{formatPrice(auction.startingPrice)}</span>
+                    <div className="price-row">
+                      <span className="current-label">Current Bid</span>
+                      <span className="bids-count-badge">{bidCount} {bidCount === 1 ? "bid" : "bids"}</span>
                     </div>
 
-                    <div className="price-row current-price-row">
-                      <span className="price-label current-label">Current Price:</span>
-                      <span className="price-val current-val">{formatPrice(auction.currentPrice)}</span>
+                    <div className="current-val-prominent">
+                      {formatPrice(auction.currentPrice)}
                     </div>
+
+                    {auction.startingPrice && auction.startingPrice !== auction.currentPrice && (
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-dim)", marginTop: "0.2rem" }}>
+                        Starting Price: {formatPrice(auction.startingPrice)}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Metadata: Seller & Timer */}
+                  {/* Timer & Meta Info */}
                   <div className="auction-meta-box">
                     <div className="meta-item">
-                      <span className="meta-icon">👤</span>
-                      <span className="meta-text seller-name">{sellerName}</span>
-                    </div>
-                    <div className="meta-item">
                       <span className="meta-icon">⏳</span>
-                      <span className="meta-text time-left" title={formatDate(auction.endTime)}>
-                        {formatEndTime(auction.endTime)}
+                      <span className={`meta-text ${isEnded ? "time-ended" : "time-active"}`}>
+                        {remaining.text}
                       </span>
                     </div>
                   </div>
 
-                  {/* Action Button */}
+                  {/* CTA Action Button */}
                   <button
-                    disabled
-                    className="btn btn-secondary auction-action-btn"
-                    title="Bidding functionality not enabled yet"
+                    onClick={() => navigate(`/auctions/${auction.id}`)}
+                    className="btn btn-primary auction-action-btn"
                   >
-                    Bidding Not Enabled
+                    View & Bid →
                   </button>
                 </div>
               </div>
@@ -220,7 +223,7 @@ function Auctions() {
         </div>
       )}
 
-      {/* Scoped CSS for Compact Auction Cards & Grid */}
+      {/* Scoped CSS for Professional Auction Cards */}
       <style>{`
         .auctions-compact-grid {
           display: grid;
@@ -250,7 +253,7 @@ function Auctions() {
         .auction-card-thumb-wrapper {
           position: relative;
           width: 100%;
-          height: 145px;
+          height: 160px;
           background-color: rgba(15, 23, 42, 0.7);
           overflow: hidden;
         }
@@ -263,10 +266,10 @@ function Auctions() {
         }
 
         .auction-card-compact:hover .auction-card-thumb {
-          transform: scale(1.05);
+          transform: scale(1.04);
         }
 
-        .auction-active-badge {
+        .auction-status-badge {
           position: absolute;
           top: 8px;
           right: 8px;
@@ -275,12 +278,21 @@ function Auctions() {
           font-size: 0.68rem;
           font-weight: 700;
           letter-spacing: 0.04em;
-          background: rgba(16, 185, 129, 0.25);
-          color: #34d399;
-          border: 1px solid rgba(16, 185, 129, 0.45);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .auction-status-badge.active {
+          background: rgba(16, 185, 129, 0.25);
+          color: #34d399;
+          border: 1px solid rgba(16, 185, 129, 0.45);
+        }
+
+        .auction-status-badge.ended {
+          background: rgba(239, 68, 68, 0.25);
+          color: #f87171;
+          border: 1px solid rgba(239, 68, 68, 0.45);
         }
 
         .auction-card-body {
@@ -294,7 +306,7 @@ function Auctions() {
           font-size: 1.05rem;
           font-weight: 700;
           color: var(--text-main);
-          margin-bottom: 0.35rem;
+          margin-bottom: 0.3rem;
           line-height: 1.3;
           white-space: nowrap;
           overflow: hidden;
@@ -305,7 +317,7 @@ function Auctions() {
           font-size: 0.825rem;
           color: var(--text-muted);
           line-height: 1.4;
-          margin-bottom: 0.85rem;
+          margin-bottom: 0.75rem;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
@@ -314,14 +326,11 @@ function Auctions() {
         }
 
         .auction-price-box {
-          background: rgba(15, 23, 42, 0.55);
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          background: rgba(15, 23, 42, 0.65);
+          border: 1px solid rgba(245, 158, 11, 0.2);
           border-radius: var(--radius-sm);
-          padding: 0.6rem 0.75rem;
-          margin-bottom: 0.85rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
+          padding: 0.65rem 0.85rem;
+          margin-bottom: 0.75rem;
         }
 
         .price-row {
@@ -330,37 +339,38 @@ function Auctions() {
           align-items: center;
         }
 
-        .price-label {
-          font-size: 0.78rem;
-          color: var(--text-dim);
-        }
-
-        .starting-val {
-          font-size: 0.825rem;
-          font-weight: 600;
-          color: var(--text-muted);
-        }
-
         .current-label {
+          font-size: 0.78rem;
           font-weight: 700;
-          color: #a5b4fc;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
         }
 
-        .current-val {
-          font-size: 1.15rem;
+        .bids-count-badge {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #a5b4fc;
+          background: var(--primary-light);
+          padding: 0.1rem 0.5rem;
+          border-radius: 99px;
+        }
+
+        .current-val-prominent {
+          font-size: 1.35rem;
           font-weight: 800;
           color: var(--accent);
           text-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+          margin-top: 0.15rem;
         }
 
         .auction-meta-box {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding-top: 0.4rem;
+          padding-top: 0.3rem;
           margin-bottom: 0.85rem;
-          border-top: 1px dashed rgba(255, 255, 255, 0.08);
-          font-size: 0.8rem;
+          font-size: 0.825rem;
         }
 
         .meta-item {
@@ -369,27 +379,22 @@ function Auctions() {
           gap: 0.35rem;
         }
 
-        .seller-name {
-          color: var(--text-muted);
-          font-weight: 600;
-          max-width: 110px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .time-left {
+        .time-active {
           color: #f87171;
           font-weight: 700;
         }
 
+        .time-ended {
+          color: var(--text-dim);
+          font-weight: 600;
+        }
+
         .auction-action-btn {
           width: 100%;
-          padding: 0.45rem 0.75rem !important;
-          font-size: 0.825rem !important;
-          opacity: 0.65;
-          cursor: not-allowed;
+          padding: 0.5rem 0.75rem !important;
+          font-size: 0.85rem !important;
           margin-top: auto;
+          font-weight: 700 !important;
         }
 
         @media (max-width: 900px) {

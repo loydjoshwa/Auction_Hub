@@ -6,6 +6,7 @@ import ForgotPassword from "../pages/auth/ForgotPassword";
 import Home from "../pages/buyer/Home";
 import Profile from "../pages/buyer/Profile";
 import Auctions from "../pages/buyer/Auctions";
+import AuctionDetails from "../pages/buyer/AuctionDetails";
 import MyProducts from "../pages/seller/MyProducts";
 import Dashboard from "../pages/admin/Dashboard";
 import ManageUsers from "../pages/admin/ManageUsers";
@@ -119,6 +120,14 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <Auctions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/auctions/:id"
+            element={
+              <ProtectedRoute>
+                <AuctionDetails />
               </ProtectedRoute>
             }
           />

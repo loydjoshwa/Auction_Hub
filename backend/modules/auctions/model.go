@@ -23,6 +23,7 @@ type Auction struct {
 	UpdatedAt     time.Time         `json:"updatedAt"`
 	Product       *products.Product `gorm:"foreignKey:ProductID" json:"product,omitempty"`
 	Seller        *users.User       `gorm:"foreignKey:SellerID" json:"seller,omitempty"`
+	BidCount      int64             `gorm:"-" json:"bidCount"`
 }
 
 type AuctionImage struct {

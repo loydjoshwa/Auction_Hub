@@ -289,6 +289,49 @@ export const apiService = {
       }),
     });
   },
+
+  /**
+   * Fetch a single auction by ID.
+   * GET /api/auctions/:id
+   */
+  async getAuctionById(token, id) {
+    return request(`/api/auctions/${id}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Place a bid on an active auction.
+   * POST /api/bids
+   */
+  async placeBid(token, { auctionId, amount }) {
+    return request("/api/bids", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        auction_id: parseInt(auctionId, 10),
+        amount: parseFloat(amount),
+      }),
+    });
+  },
+
+  /**
+   * Fetch bid history for an auction.
+   * GET /api/bids/auction/:auctionId
+   */
+  async getAuctionBids(token, auctionId) {
+    return request(`/api/bids/auction/${auctionId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
 };
 
 export default apiService;

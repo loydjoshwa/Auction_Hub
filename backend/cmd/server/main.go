@@ -106,6 +106,9 @@ func main() {
 	// Auction routes
 	auctions.RegisterRoutes(api)
 
+	// Bids routes
+	bids.RegisterRoutes(api)
+
 	log.Println("Auction Hub server started on http://localhost:8080")
 
 	err = router.Run(":8080")
