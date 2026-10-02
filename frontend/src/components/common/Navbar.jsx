@@ -42,6 +42,38 @@ function Navbar() {
                     Manage Users
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    to="/admin/products"
+                    className={`nav-link ${isActive("/admin/products") ? "active" : ""}`}
+                  >
+                    Manage Products
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/admin/auctions"
+                    className={`nav-link ${isActive("/admin/auctions") ? "active" : ""}`}
+                  >
+                    Manage Auctions
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/admin/bids"
+                    className={`nav-link ${isActive("/admin/bids") ? "active" : ""}`}
+                  >
+                    Manage Bids
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/admin/orders"
+                    className={`nav-link ${isActive("/admin/orders") ? "active" : ""}`}
+                  >
+                    Manage Orders
+                  </Link>
+                </li>
               </>
             ) : (
               <>
@@ -65,10 +97,42 @@ function Navbar() {
                     </li>
                     <li>
                       <Link
+                        to="/my-bids"
+                        className={`nav-link ${isActive("/my-bids") ? "active" : ""}`}
+                      >
+                        My Bids
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/won-auctions"
+                        className={`nav-link ${isActive("/won-auctions") ? "active" : ""}`}
+                      >
+                        Won Auctions
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/my-auctions"
+                        className={`nav-link ${isActive("/my-auctions") ? "active" : ""}`}
+                      >
+                        My Auctions
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
                         to="/products"
                         className={`nav-link ${isActive("/products") ? "active" : ""}`}
                       >
                         My Products
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/my-orders"
+                        className={`nav-link ${isActive("/my-orders") ? "active" : ""}`}
+                      >
+                        My Orders
                       </Link>
                     </li>
                   </>

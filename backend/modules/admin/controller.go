@@ -19,7 +19,6 @@ func NewController(service *Service) *Controller {
 	}
 }
 
-// Helper to safely extract user_id from Gin context
 func getUserIDFromContext(ctx *gin.Context) (uint, bool) {
 	val, exists := ctx.Get("user_id")
 	if !exists {
@@ -32,6 +31,8 @@ func getUserIDFromContext(ctx *gin.Context) (uint, bool) {
 		return v, true
 	case int:
 		return uint(v), true
+	case uint64:
+		return uint(v), true
 	case int64:
 		return uint(v), true
 	default:
@@ -39,7 +40,7 @@ func getUserIDFromContext(ctx *gin.Context) (uint, bool) {
 	}
 }
 
-// GetDashboardAnalytics returns dashboard statistics for total, active, and blocked users.
+// GetDashboardAnalytics returns dashboard statistics for users, products, auctions, bids, and orders.
 func (c *Controller) GetDashboardAnalytics(ctx *gin.Context) {
 	analytics, err := c.Service.GetDashboardAnalytics()
 	if err != nil {
@@ -61,7 +62,6 @@ func (c *Controller) GetAllUsers(ctx *gin.Context) {
 	status := ctx.Query("status")
 
 	usersList, err := c.Service.GetAllUsers(search, status)
-
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to fetch users",
@@ -151,5 +151,217 @@ func (c *Controller) UnblockUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "User unblocked successfully",
 		"user":    updatedUser,
+	})
+}
+
+// GetAllProducts returns all products created by users with filters.
+func (c *Controller) GetAllProducts(ctx *gin.Context) {
+	search := ctx.Query("search")
+	status := ctx.Query("status")
+	inAuction := ctx.Query("inAuction")
+	sort := ctx.Query("sort")
+
+	productList, err := c.Service.GetAllProducts(search, status, inAuction, sort)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch products",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message":  "Products fetched successfully",
+		"products": productList,
+	})
+}
+
+// DeleteProduct deletes a product if not in an active auction.
+func (c *Controller) DeleteProduct(ctx *gin.Context) {
+	adminUserID, _ := getUserIDFromContext(ctx)
+	idParam := ctx.Param("id")
+	targetID, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid product ID",
+		})
+		return
+	}
+
+	var reqBody struct {
+		Reason string `json:"reason"`
+	}
+	_ = ctx.ShouldBindJSON(&reqBody)
+
+	reason := reqBody.Reason
+	if reason == "" {
+		reason = ctx.Query("reason")
+	}
+
+	if reason == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "A reason is required to remove this product",
+		})
+		return
+	}
+
+	err = c.Service.DeleteProduct(adminUserID, uint(targetID), reason)
+	if err != nil {
+		if errors.Is(err, ErrProductInActiveAuction) {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"message": "Product not found",
+			})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to delete product",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Product deleted successfully",
+	})
+}
+
+// GetAllAuctions returns all auctions with seller, product, and winner details.
+func (c *Controller) GetAllAuctions(ctx *gin.Context) {
+	search := ctx.Query("search")
+	status := ctx.Query("status")
+	sort := ctx.Query("sort")
+
+	auctionList, err := c.Service.GetAllAuctions(search, status, sort)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch auctions",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message":  "Auctions fetched successfully",
+		"auctions": auctionList,
+	})
+}
+
+// CancelAuction allows admin to cancel/end an active auction.
+func (c *Controller) CancelAuction(ctx *gin.Context) {
+	adminUserID, _ := getUserIDFromContext(ctx)
+	idParam := ctx.Param("id")
+	targetID, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid auction ID",
+		})
+		return
+	}
+
+	var reqBody struct {
+		Reason string `json:"reason"`
+	}
+	_ = ctx.ShouldBindJSON(&reqBody)
+
+	reason := reqBody.Reason
+	if reason == "" {
+		reason = ctx.Query("reason")
+	}
+	if reason == "" {
+		reason = "Ended by administrator"
+	}
+
+	auction, err := c.Service.CancelAuction(adminUserID, uint(targetID), reason)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"message": "Auction not found",
+			})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to cancel auction",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Auction cancelled successfully",
+		"auction": auction,
+	})
+}
+
+// GetAllBids returns all bids placed on auctions with bidder & auction details.
+func (c *Controller) GetAllBids(ctx *gin.Context) {
+	search := ctx.Query("search")
+	auctionID := ctx.Query("auctionId")
+	bidderID := ctx.Query("bidderId")
+	sort := ctx.Query("sort")
+
+	bidsList, err := c.Service.GetAllBids(search, auctionID, bidderID, sort)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch bids",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Bids fetched successfully",
+		"bids":    bidsList,
+	})
+}
+
+// GetAllOrders returns all completed auction orders.
+func (c *Controller) GetAllOrders(ctx *gin.Context) {
+	search := ctx.Query("search")
+	status := ctx.Query("status")
+	sort := ctx.Query("sort")
+
+	ordersList, err := c.Service.GetAllOrders(search, status, sort)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch orders",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Orders fetched successfully",
+		"orders":  ordersList,
+	})
+}
+
+// GetAdminOrderByID returns order details for admin.
+func (c *Controller) GetAdminOrderByID(ctx *gin.Context) {
+	idParam := ctx.Param("id")
+	targetID, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid order ID",
+		})
+		return
+	}
+
+	order, err := c.Service.GetAdminOrderByID(uint(targetID))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"message": "Order not found",
+			})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch order",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Order fetched successfully",
+		"order":   order,
 	})
 }

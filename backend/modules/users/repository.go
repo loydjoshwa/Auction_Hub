@@ -50,4 +50,4 @@ func (r *Repository) UpdateUserName(userID interface{}, newName string) (*User, 
 	}
 
 	return user, nil
-}
+}

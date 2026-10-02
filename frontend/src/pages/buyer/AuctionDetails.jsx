@@ -15,6 +15,7 @@ function AuctionDetails() {
 
   const [bidAmount, setBidAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [endingAuction, setEndingAuction] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [fieldError, setFieldError] = useState("");
 
@@ -22,6 +23,30 @@ function AuctionDetails() {
     formatted: "",
     isExpired: false,
   });
+
+  const handleEndAuction = async () => {
+    if (!window.confirm("Are you sure you want to end this auction now? Bidding will be closed immediately.")) {
+      return;
+    }
+    setEndingAuction(true);
+    setSuccessMsg("");
+    setFieldError("");
+    try {
+      const res = await apiService.endAuction(token, auction.id);
+      setSuccessMsg("🎉 Auction ended successfully!");
+      if (res.auction) {
+        setAuction(res.auction);
+      } else {
+        setAuction((prev) => ({ ...prev, status: "ended" }));
+      }
+      const bidsRes = await apiService.getAuctionBids(token, auction.id);
+      setBids(bidsRes.bids || []);
+    } catch (err) {
+      setFieldError(err.message || "Failed to end auction.");
+    } finally {
+      setEndingAuction(false);
+    }
+  };
 
   // Fetch auction and bids data
   const fetchData = async () => {
@@ -323,13 +348,40 @@ function AuctionDetails() {
           <div className="bidding-form-section">
             {isSeller ? (
               <div className="alert alert-warning" style={{ margin: 0, textAlign: "center", display: "block" }}>
-                <p style={{ fontWeight: "700", marginBottom: "0.2rem" }}>⛔ Owner Restriction</p>
-                <p style={{ fontSize: "0.85rem" }}>You cannot bid on your own auction.</p>
+                <p style={{ fontWeight: "700", marginBottom: "0.4rem" }}>⛔ Seller Controls</p>
+                <p style={{ fontSize: "0.85rem", marginBottom: isAuctionActive ? "0.8rem" : "0" }}>
+                  As the seller, you cannot bid on your own auction.
+                </p>
+                {isAuctionActive && (
+                  <button
+                    type="button"
+                    onClick={handleEndAuction}
+                    disabled={endingAuction}
+                    className="btn btn-danger"
+                    style={{ width: "100%", padding: "0.55rem 1rem", fontSize: "0.9rem" }}
+                  >
+                    {endingAuction ? "Ending Auction..." : "⏹️ End Auction Now"}
+                  </button>
+                )}
               </div>
             ) : !isAuctionActive ? (
               <div className="alert alert-error" style={{ margin: 0, textAlign: "center", display: "block" }}>
                 <p style={{ fontWeight: "700", marginBottom: "0.2rem" }}>⌛ Auction Closed</p>
-                <p style={{ fontSize: "0.85rem" }}>This auction has ended and is no longer accepting bids.</p>
+                <p style={{ fontSize: "0.85rem", marginBottom: bids.length > 0 ? "0.5rem" : 0 }}>
+                  This auction has ended and is no longer accepting bids.
+                </p>
+                {bids.length > 0 && (
+                  <div style={{ marginTop: "0.5rem", padding: "0.5rem", background: "rgba(16, 185, 129, 0.1)", borderRadius: "6px", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+                    <p style={{ fontWeight: "700", color: "#34d399", fontSize: "0.9rem", margin: 0 }}>
+                      🏆 Winner: {bids[0].user?.name || (bids[0].userId === user?.id ? "You" : `Bidder #${bids[0].userId}`)} ({formatPrice(bids[0].amount)})
+                    </p>
+                    {bids[0].userId === user?.id && (
+                      <p style={{ fontSize: "0.8rem", color: "#a7f3d0", margin: "0.25rem 0 0 0" }}>
+                        🎉 Congratulations! You won this auction!
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <form onSubmit={handleBidSubmit}>
@@ -344,8 +396,8 @@ function AuctionDetails() {
                     </span>
                     <input
                       type="number"
-                      step="1"
-                      min={auction.currentPrice + 1}
+                      step="any"
+                      min={auction.currentPrice + 0.01}
                       placeholder={`Enter > ${auction.currentPrice}`}
                       value={bidAmount}
                       onChange={(e) => {
@@ -355,6 +407,7 @@ function AuctionDetails() {
                       className="form-control"
                       style={{ paddingLeft: "2rem", width: "100%" }}
                       disabled={submitting}
+                      required
                     />
                   </div>
 
@@ -365,48 +418,6 @@ function AuctionDetails() {
                     style={{ minWidth: "120px" }}
                   >
                     {submitting ? "Placing..." : "Place Bid"}
-                  </button>
-                </div>
-
-                {/* Quick Bid Suggestion Button */}
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.4rem" }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = Math.ceil(auction.currentPrice + 100);
-                      setBidAmount(next.toString());
-                      setFieldError("");
-                    }}
-                    style={{
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "var(--text-muted)",
-                      borderRadius: "6px",
-                      padding: "0.25rem 0.6rem",
-                      fontSize: "0.75rem",
-                      cursor: "pointer",
-                    }}
-                  >
-                    +₹100 ({formatPrice(auction.currentPrice + 100)})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = Math.ceil(auction.currentPrice + 500);
-                      setBidAmount(next.toString());
-                      setFieldError("");
-                    }}
-                    style={{
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "var(--text-muted)",
-                      borderRadius: "6px",
-                      padding: "0.25rem 0.6rem",
-                      fontSize: "0.75rem",
-                      cursor: "pointer",
-                    }}
-                  >
-                    +₹500 ({formatPrice(auction.currentPrice + 500)})
                   </button>
                 </div>
 

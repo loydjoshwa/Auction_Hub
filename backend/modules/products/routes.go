@@ -6,9 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(router *gin.RouterGroup) {
+func RegisterRoutes(router *gin.RouterGroup, auctionChecker AuctionChecker) {
 	repository := NewRepository()
-	service := NewService(repository)
+	service := NewService(repository, auctionChecker)
 	controller := NewController(service)
 
 	productRoutes := router.Group("/products")

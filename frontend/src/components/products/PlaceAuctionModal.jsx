@@ -81,7 +81,7 @@ function PlaceAuctionModal({ isOpen, onClose, onPlaceAuction, product, saving = 
             {/* Starting Bid Price */}
             <div className="form-group">
               <label htmlFor="starting-price" className="form-label">
-                Starting Bid Price ($) <span style={{ color: "var(--error)" }}>*</span>
+                Starting Bid Price (₹) <span style={{ color: "var(--error)" }}>*</span>
               </label>
               <input
                 id="starting-price"

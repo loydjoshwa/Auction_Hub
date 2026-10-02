@@ -14,8 +14,11 @@ var (
 	ErrInvalidPrice        = errors.New("starting price must be greater than 0")
 	ErrInvalidDuration     = errors.New("invalid auction duration selected")
 	ErrProductNotFound     = errors.New("product not found")
+	ErrAuctionNotFound     = errors.New("auction not found")
 	ErrUnauthorizedProduct = errors.New("forbidden: you do not own this product")
+	ErrUnauthorizedAuction = errors.New("forbidden: you do not own this auction")
 	ErrAlreadyInAuction    = errors.New("product is already in an active auction")
+	ErrAuctionAlreadyEnded = errors.New("Auction is already ended.")
 )
 
 type Service struct {
@@ -108,7 +111,7 @@ func (s *Service) CreateAuction(
 		return nil, err
 	}
 
-	// 7. Create the auction.
+	// 7. Create auction using DB transaction for atomicity.
 	now := time.Now()
 
 	auction := &Auction{
@@ -124,30 +127,29 @@ func (s *Service) CreateAuction(
 		Status:        "active",
 	}
 
-	// 8. Save auction.
-	err = s.Repository.CreateAuction(auction)
-	if err != nil {
-		return nil, err
-	}
-
-	// 9. Copy the product image to the auction image table.
-	if product.ImageURL != "" {
-
-		err = s.Repository.CreateAuctionImage(&AuctionImage{
-			AuctionID: auction.ID,
-			ImageURL:  product.ImageURL,
-			IsPrimary: true,
-		})
-
-		if err != nil {
-			return nil, err
+	err = s.Repository.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(auction).Error; err != nil {
+			return err
 		}
-	}
 
-	// 10. Mark the product as being in an auction.
-	product.Status = "In Auction"
+		if product.ImageURL != "" {
+			img := &AuctionImage{
+				AuctionID: auction.ID,
+				ImageURL:  product.ImageURL,
+				IsPrimary: true,
+			}
+			if err := tx.Create(img).Error; err != nil {
+				return err
+			}
+		}
 
-	err = s.ProductRepository.UpdateProduct(product)
+		if err := tx.Model(&products.Product{}).Where("id = ?", product.ID).Update("status", "In Auction").Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -163,4 +165,50 @@ func (s *Service) GetActiveAuctions() ([]Auction, error) {
 // GetAuctionByID returns one auction with its product and seller information.
 func (s *Service) GetAuctionByID(auctionID uint) (*Auction, error) {
 	return s.Repository.GetAuctionByID(auctionID)
+}
+
+// EndAuction allows the seller owning the auction to end it manually before EndTime.
+func (s *Service) EndAuction(auctionID uint, userID uint) (*Auction, error) {
+	auction, err := s.Repository.GetAuctionByID(auctionID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrAuctionNotFound
+		}
+		return nil, err
+	}
+
+	if auction.SellerID != userID {
+		return nil, ErrUnauthorizedAuction
+	}
+
+	if strings.ToLower(auction.Status) != "active" || time.Now().After(auction.EndTime) || time.Now().Equal(auction.EndTime) {
+		return nil, ErrAuctionAlreadyEnded
+	}
+
+	auction.Status = "completed"
+	auction.EndTime = time.Now()
+
+	err = s.Repository.UpdateAuction(auction)
+	if err != nil {
+		return nil, err
+	}
+
+	s.Repository.EvaluateExpiredAuctions()
+
+	updatedAuction, err := s.Repository.GetAuctionByID(auctionID)
+	if err == nil && updatedAuction != nil {
+		return updatedAuction, nil
+	}
+
+	return auction, nil
+}
+
+// GetMyAuctions returns all auctions created by the specified seller.
+func (s *Service) GetMyAuctions(sellerID uint) ([]Auction, error) {
+	return s.Repository.GetAuctionsBySellerID(sellerID)
+}
+
+// GetWonAuctions returns all ended auctions won by the specified buyer.
+func (s *Service) GetWonAuctions(buyerID uint) ([]Auction, error) {
+	return s.Repository.GetWonAuctionsByBuyerID(buyerID)
 }

@@ -30,6 +30,10 @@ func RegisterRoutes(router *gin.RouterGroup) {
 		// Place a bid
 		bidRoutes.POST("", controller.CreateBid)
 
+		// Get user's bid listings
+		bidRoutes.GET("/my", controller.GetMyBids)
+		bidRoutes.GET("/my-bids", controller.GetMyBids)
+
 		// Get bid history for an auction
 		bidRoutes.GET("/auction/:auctionId", controller.GetBidsByAuctionID)
 	}

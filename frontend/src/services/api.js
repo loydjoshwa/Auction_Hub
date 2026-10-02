@@ -193,6 +193,124 @@ export const apiService = {
   },
 
   /**
+   * Fetch products for admin.
+   * GET /api/admin/products
+   */
+  async getAdminProducts(token, search = "", status = "", inAuction = "", sort = "") {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (status) params.append("status", status);
+    if (inAuction) params.append("inAuction", inAuction);
+    if (sort) params.append("sort", sort);
+
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    return request(`/api/admin/products${queryString}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Delete product by ID for admin with mandatory reason.
+   * DELETE /api/admin/products/:id
+   */
+  async deleteAdminProduct(token, productId, reason = "") {
+    return request(`/api/admin/products/${productId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  /**
+   * Fetch auctions for admin.
+   * GET /api/admin/auctions
+   */
+  async getAdminAuctions(token, search = "", status = "", sort = "") {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (status) params.append("status", status);
+    if (sort) params.append("sort", sort);
+
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    return request(`/api/admin/auctions${queryString}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Cancel auction by ID for admin.
+   * PATCH /api/admin/auctions/:id/cancel
+   */
+  async cancelAdminAuction(token, auctionId) {
+    return request(`/api/admin/auctions/${auctionId}/cancel`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch bids for admin.
+   * GET /api/admin/bids
+   */
+  async getAdminBids(token, search = "", auctionId = "", bidderId = "", sort = "") {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (auctionId) params.append("auctionId", auctionId);
+    if (bidderId) params.append("bidderId", bidderId);
+    if (sort) params.append("sort", sort);
+
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    return request(`/api/admin/bids${queryString}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch orders for admin.
+   * GET /api/admin/orders
+   */
+  async getAdminOrders(token, search = "", status = "", sort = "") {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (status) params.append("status", status);
+    if (sort) params.append("sort", sort);
+
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    return request(`/api/admin/orders${queryString}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch single order details for admin.
+   * GET /api/admin/orders/:id
+   */
+  async getAdminOrderById(token, orderId) {
+    return request(`/api/admin/orders/${orderId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
    * Fetch products belonging to the logged in user.
    * GET /api/products/my
    */
@@ -330,6 +448,204 @@ export const apiService = {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+    });
+  },
+
+  /**
+   * End an active auction manually (Seller only).
+   * PATCH /api/auctions/:id/end
+   */
+  async endAuction(token, auctionId) {
+    return request(`/api/auctions/${auctionId}/end`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch all auctions where the authenticated user placed bids.
+   * GET /api/bids/my
+   */
+  async getMyBids(token) {
+    return request("/api/bids/my", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch all ended auctions won by the logged-in buyer.
+   * GET /api/auctions/won
+   */
+  async getWonAuctions(token) {
+    return request("/api/auctions/won", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch all auctions created by the logged-in seller.
+   * GET /api/auctions/seller
+   */
+  async getMyAuctions(token) {
+    return request("/api/auctions/seller", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch all user orders.
+   * GET /api/orders
+   */
+  async getUserOrders(token) {
+    return request("/api/orders", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch user orders separated into buyerOrders and sellerOrders.
+   * GET /api/orders/my-orders
+   */
+  async getMyOrders(token) {
+    return request("/api/orders/my-orders", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch a single order by ID.
+   * GET /api/orders/:id
+   */
+  async getOrderById(token, id) {
+    return request(`/api/orders/${id}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Update delivery address for an order (Buyer only, before Shipped).
+   * PUT /api/orders/:id/address
+   */
+  async updateDeliveryAddress(token, id, address) {
+    return request(`/api/orders/${id}/address`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ deliveryAddress: address }),
+    });
+  },
+
+  /**
+   * Mark order as Packed (Admin/Seller).
+   * PATCH /api/orders/:id/pack
+   */
+  async markOrderPacked(token, id) {
+    return request(`/api/orders/${id}/pack`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Mark order as Shipped (Admin/Seller).
+   * PATCH /api/orders/:id/ship
+   */
+  async markOrderShipped(token, id) {
+    return request(`/api/orders/${id}/ship`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Mark order as Delivered (Buyer only).
+   * PATCH /api/orders/:id/deliver
+   */
+  async markOrderDelivered(token, id) {
+    return request(`/api/orders/${id}/deliver`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Update order status with mandatory reason (Admin).
+   * PUT /api/orders/:id/status
+   */
+  async updateOrderStatus(token, id, status, reason = "") {
+    return request(`/api/orders/${id}/status`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status, reason }),
+    });
+  },
+
+  /**
+   * Get or create a private buyer-seller conversation for an auction.
+   * GET /api/chat/auction/:auctionId
+   */
+  async getChatConversation(token, auctionId) {
+    return request(`/api/chat/auction/${auctionId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Get all messages for a conversation.
+   * GET /api/chat/conversation/:id/messages
+   */
+  async getChatMessages(token, conversationId) {
+    return request(`/api/chat/conversation/${conversationId}/messages`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Send a chat message in a conversation.
+   * POST /api/chat/conversation/:id/messages
+   */
+  async sendChatMessage(token, conversationId, message) {
+    return request(`/api/chat/conversation/${conversationId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ message }),
     });
   },
 };

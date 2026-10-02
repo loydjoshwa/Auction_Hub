@@ -89,4 +89,4 @@ func (c *Controller) UpdateProfile(ctx *gin.Context) {
 			"role":  user.Role,
 		},
 	})
-}
+}

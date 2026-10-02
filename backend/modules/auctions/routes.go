@@ -34,7 +34,17 @@ func RegisterRoutes(router *gin.RouterGroup) {
 		// Any authenticated user can view these.
 		auctionRoutes.GET("", controller.GetActiveAuctions)
 
+		// Get seller's created auctions
+		auctionRoutes.GET("/my-auctions", controller.GetMyAuctions)
+		auctionRoutes.GET("/seller", controller.GetMyAuctions)
+
+		// Get auctions won by buyer
+		auctionRoutes.GET("/won", controller.GetWonAuctions)
+
 		// Get details of a specific auction
 		auctionRoutes.GET("/:id", controller.GetAuctionByID)
+
+		// End an active auction manually (Seller only)
+		auctionRoutes.PATCH("/:id/end", controller.EndAuction)
 	}
 }

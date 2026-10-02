@@ -3,7 +3,7 @@ package utilis
 import (
 	"time"
 
-	"github.com/golang-jwt/jwt/v5" 
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func GenerateToken(userID uint, email string, role string) (string, error) {

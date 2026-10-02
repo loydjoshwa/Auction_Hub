@@ -1,6 +1,7 @@
 package products
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -300,15 +301,21 @@ func (c *Controller) UpdateProduct(ctx *gin.Context) {
 
 	product, err := c.Service.UpdateProduct(uint(id), userID, name, description, newImageURL)
 	if err != nil {
-		if err == ErrUnauthorizedAccess {
+		if errors.Is(err, ErrUnauthorizedAccess) {
 			ctx.JSON(http.StatusForbidden, gin.H{
 				"message": "Forbidden: You do not own this product",
 			})
 			return
 		}
-		if err == ErrProductNotFound {
+		if errors.Is(err, ErrProductNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{
 				"message": "Product not found",
+			})
+			return
+		}
+		if errors.Is(err, ErrProductInActiveAuction) {
+			ctx.JSON(http.StatusConflict, gin.H{
+				"message": err.Error(),
 			})
 			return
 		}
@@ -345,20 +352,26 @@ func (c *Controller) DeleteProduct(ctx *gin.Context) {
 
 	product, err := c.Service.DeleteProduct(uint(id), userID)
 	if err != nil {
-		if err == ErrUnauthorizedAccess {
+		if errors.Is(err, ErrUnauthorizedAccess) {
 			ctx.JSON(http.StatusForbidden, gin.H{
 				"message": "Forbidden: You do not own this product",
 			})
 			return
 		}
-		if err == ErrProductNotFound {
+		if errors.Is(err, ErrProductNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{
 				"message": "Product not found",
 			})
 			return
 		}
+		if errors.Is(err, ErrProductInActiveAuctionDelete) || errors.Is(err, ErrProductInActiveAuction) || errors.Is(err, ErrProductHasHistory) {
+			ctx.JSON(http.StatusConflict, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to delete product",
+			"message": err.Error(),
 		})
 		return
 	}

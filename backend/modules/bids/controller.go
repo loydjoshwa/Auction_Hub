@@ -140,3 +140,28 @@ func (c *Controller) GetBidsByAuctionID(ctx *gin.Context) {
 		"bids": bids,
 	})
 }
+
+// GET /api/bids/my-bids
+//
+// Returns all auctions in which the logged-in user has placed bids.
+func (c *Controller) GetMyBids(ctx *gin.Context) {
+	userID, ok := getUserIDFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "User not authenticated",
+		})
+		return
+	}
+
+	items, err := c.Service.GetMyBids(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch user bids",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"bids": items,
+	})
+}

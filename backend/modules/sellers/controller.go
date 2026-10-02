@@ -46,7 +46,7 @@ func (c *Controller) GetProfile(ctx *gin.Context) {
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{
-				"message": "Seller profile not found",
+				"message":   "Seller profile not found",
 				"is_seller": false,
 			})
 			return

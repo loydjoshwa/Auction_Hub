@@ -23,4 +23,4 @@ func (s *Service) GetUserByID(userID interface{}) (*User, error) {
 
 func (s *Service) UpdateUserProfile(userID interface{}, name string) (*User, error) {
 	return s.Repository.UpdateUserName(userID, name)
-}
+}

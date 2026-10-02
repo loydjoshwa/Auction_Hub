@@ -255,14 +255,26 @@ function MyProducts() {
                     <button
                       onClick={() => handleOpenEditModal(prod)}
                       className="btn btn-secondary btn-sm"
-                      style={{ flex: 1 }}
+                      style={{
+                        flex: 1,
+                        opacity: isInAuction ? 0.5 : 1,
+                        cursor: isInAuction ? "not-allowed" : "pointer",
+                      }}
+                      disabled={isInAuction}
+                      title={isInAuction ? "Product cannot be edited while in an active auction" : ""}
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => setDeletingProduct(prod)}
                       className="btn btn-danger btn-sm"
-                      style={{ flex: 1 }}
+                      style={{
+                        flex: 1,
+                        opacity: isInAuction ? 0.5 : 1,
+                        cursor: isInAuction ? "not-allowed" : "pointer",
+                      }}
+                      disabled={isInAuction}
+                      title={isInAuction ? "Product cannot be deleted while in an active auction" : ""}
                     >
                       Delete
                     </button>

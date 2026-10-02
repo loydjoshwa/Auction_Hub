@@ -19,5 +19,20 @@ func RegisterRoutes(router *gin.RouterGroup) {
 		adminRoutes.GET("/users", controller.GetAllUsers)
 		adminRoutes.PATCH("/users/:id/block", controller.BlockUser)
 		adminRoutes.PATCH("/users/:id/unblock", controller.UnblockUser)
+
+		// Manage Products
+		adminRoutes.GET("/products", controller.GetAllProducts)
+		adminRoutes.DELETE("/products/:id", controller.DeleteProduct)
+
+		// Manage Auctions
+		adminRoutes.GET("/auctions", controller.GetAllAuctions)
+		adminRoutes.PATCH("/auctions/:id/cancel", controller.CancelAuction)
+
+		// Manage Bids
+		adminRoutes.GET("/bids", controller.GetAllBids)
+
+		// Manage Orders
+		adminRoutes.GET("/orders", controller.GetAllOrders)
+		adminRoutes.GET("/orders/:id", controller.GetAdminOrderByID)
 	}
 }

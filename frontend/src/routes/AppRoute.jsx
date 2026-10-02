@@ -8,8 +8,17 @@ import Profile from "../pages/buyer/Profile";
 import Auctions from "../pages/buyer/Auctions";
 import AuctionDetails from "../pages/buyer/AuctionDetails";
 import MyProducts from "../pages/seller/MyProducts";
+import MyBids from "../pages/buyer/MyBids";
+import WonAuctions from "../pages/buyer/WonAuctions";
+import MyAuctions from "../pages/seller/MyAuctions";
+import OrderDetails from "../pages/buyer/OrderDetails";
+import MyOrders from "../pages/buyer/MyOrders";
 import Dashboard from "../pages/admin/Dashboard";
 import ManageUsers from "../pages/admin/ManageUsers";
+import ManageProducts from "../pages/admin/ManageProducts";
+import ManageAuctions from "../pages/admin/ManageAuctions";
+import ManageBids from "../pages/admin/ManageBids";
+import ManageOrders from "../pages/admin/ManageOrders";
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 import { useAuth } from "../context/AuthContext";
@@ -132,6 +141,46 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/my-bids"
+            element={
+              <ProtectedRoute>
+                <MyBids />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/won-auctions"
+            element={
+              <ProtectedRoute>
+                <WonAuctions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-auctions"
+            element={
+              <ProtectedRoute>
+                <MyAuctions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-orders"
+            element={
+              <ProtectedRoute>
+                <MyOrders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orders/:id"
+            element={
+              <ProtectedRoute>
+                <OrderDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin"
             element={
               <AdminRoute>
@@ -144,6 +193,38 @@ function AppRoutes() {
             element={
               <AdminRoute>
                 <ManageUsers />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/products"
+            element={
+              <AdminRoute>
+                <ManageProducts />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/auctions"
+            element={
+              <AdminRoute>
+                <ManageAuctions />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/bids"
+            element={
+              <AdminRoute>
+                <ManageBids />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/orders"
+            element={
+              <AdminRoute>
+                <ManageOrders />
               </AdminRoute>
             }
           />

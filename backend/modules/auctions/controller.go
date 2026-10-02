@@ -188,3 +188,105 @@ func (c *Controller) GetAuctionByID(ctx *gin.Context) {
 		"auction": auction,
 	})
 }
+
+// PATCH /api/auctions/:id/end
+//
+// Allows the seller owning the auction to end it manually before EndTime.
+func (c *Controller) EndAuction(ctx *gin.Context) {
+	userID, ok := getUserIDFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "User not authenticated",
+		})
+		return
+	}
+
+	idParam := ctx.Param("id")
+	auctionID, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid auction ID",
+		})
+		return
+	}
+
+	auction, err := c.Service.EndAuction(uint(auctionID), userID)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrUnauthorizedAuction):
+			ctx.JSON(http.StatusForbidden, gin.H{
+				"message": "Forbidden: You are not the owner of this auction",
+			})
+			return
+
+		case errors.Is(err, ErrAuctionNotFound), errors.Is(err, gorm.ErrRecordNotFound):
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"message": "Auction not found",
+			})
+			return
+
+		case errors.Is(err, ErrAuctionAlreadyEnded):
+			ctx.JSON(http.StatusConflict, gin.H{
+				"message": "Auction is already ended",
+			})
+			return
+
+		default:
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"message": "Failed to end auction",
+			})
+			return
+		}
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Auction ended successfully",
+		"auction": auction,
+	})
+}
+
+// GET /api/auctions/seller (or /my-auctions)
+func (c *Controller) GetMyAuctions(ctx *gin.Context) {
+	userID, ok := getUserIDFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "User not authenticated",
+		})
+		return
+	}
+
+	auctions, err := c.Service.GetMyAuctions(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch seller auctions",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"auctions": auctions,
+	})
+}
+
+// GET /api/auctions/won
+func (c *Controller) GetWonAuctions(ctx *gin.Context) {
+	userID, ok := getUserIDFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "User not authenticated",
+		})
+		return
+	}
+
+	auctions, err := c.Service.GetWonAuctions(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch won auctions",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"auctions": auctions,
+	})
+}

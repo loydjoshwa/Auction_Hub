@@ -125,11 +125,6 @@ function ManageUsers() {
           <h1 className="admin-title">Manage Users</h1>
           <p className="admin-subtitle">View and manage system user accounts</p>
         </div>
-        <div className="admin-nav-actions">
-          <Link to="/admin" className="btn btn-secondary" style={{ width: "auto" }}>
-            ← Back to Dashboard
-          </Link>
-        </div>
       </div>
 
       {error && (

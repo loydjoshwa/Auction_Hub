@@ -11,12 +11,12 @@ import (
 )
 
 var (
-	ErrAuctionNotFound   = errors.New("auction not found")
-	ErrAuctionNotActive  = errors.New("auction is not active")
-	ErrAuctionEnded      = errors.New("auction has ended")
-	ErrSellerCannotBid   = errors.New("seller cannot bid on own auction")
-	ErrBidAmountTooLow   = errors.New("bid amount must be greater than current price")
-	ErrInvalidBidAmount  = errors.New("bid amount must be greater than 0")
+	ErrAuctionNotFound  = errors.New("auction not found")
+	ErrAuctionNotActive = errors.New("auction is not active")
+	ErrAuctionEnded     = errors.New("auction has ended")
+	ErrSellerCannotBid  = errors.New("seller cannot bid on own auction")
+	ErrBidAmountTooLow  = errors.New("bid amount must be greater than current price")
+	ErrInvalidBidAmount = errors.New("bid amount must be greater than 0")
 )
 
 type Service struct {
@@ -31,7 +31,7 @@ func NewService(repository *Repository, auctionRepository *auctions.Repository) 
 	}
 }
 
-// CreateBid validates and places a bid on an active auction.
+// CreateBid validates and places a bid on an active auction with database transaction & concurrency protection.
 func (s *Service) CreateBid(userID uint, auctionID uint, amount float64) (*Bid, *auctions.Auction, error) {
 
 	// 1. Validate bid amount.
@@ -39,69 +39,72 @@ func (s *Service) CreateBid(userID uint, auctionID uint, amount float64) (*Bid, 
 		return nil, nil, ErrInvalidBidAmount
 	}
 
-	// 2. Fetch auction and check existence.
-	auction, err := s.AuctionRepository.GetAuctionByID(auctionID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil, ErrAuctionNotFound
+	s.AuctionRepository.EvaluateExpiredAuctions()
+
+	var newBid *Bid
+	var updatedAuction *auctions.Auction
+
+	// 2. Transaction for atomic bid insertion and auction price update
+	err := s.Repository.DB.Transaction(func(tx *gorm.DB) error {
+		var auction auctions.Auction
+		if err := tx.First(&auction, auctionID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrAuctionNotFound
+			}
+			return err
 		}
-		return nil, nil, err
-	}
 
-	// 3. Check if auction status is active.
-	if strings.ToLower(auction.Status) != "active" {
-		return nil, nil, ErrAuctionNotActive
-	}
-
-	// 4. Check if auction has ended.
-	if time.Now().After(auction.EndTime) {
-		return nil, nil, ErrAuctionEnded
-	}
-
-	// 5. Prevent seller from bidding on their own auction.
-	if auction.SellerID == userID {
-		return nil, nil, ErrSellerCannotBid
-	}
-
-	// 6. Validate bid amount against highest bid and starting/current price.
-	highestBid, err := s.Repository.GetHighestBidByAuctionID(auctionID)
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil, err
-	}
-
-	if highestBid != nil {
-		// Previous bids exist: bid must be strictly greater than current highest bid/current price
-		if amount <= highestBid.Amount || amount <= auction.CurrentPrice {
-			return nil, nil, ErrBidAmountTooLow
+		if strings.ToLower(auction.Status) != "active" {
+			return ErrAuctionNotActive
 		}
-	} else {
-		// No previous bids: bid must be greater than or equal to starting price/current price
-		if amount < auction.StartingPrice || amount < auction.CurrentPrice {
-			return nil, nil, errors.New("bid amount must be greater than or equal to starting price")
+
+		now := time.Now()
+		if now.After(auction.EndTime) || now.Equal(auction.EndTime) {
+			return ErrAuctionEnded
 		}
-	}
 
-	// 7. Save the bid.
-	bid := &Bid{
-		AuctionID: auctionID,
-		UserID:    userID,
-		Amount:    amount,
-	}
+		if auction.SellerID == userID {
+			return ErrSellerCannotBid
+		}
 
-	err = s.Repository.CreateBid(bid)
+		if amount <= auction.CurrentPrice {
+			return ErrBidAmountTooLow
+		}
+
+		var highestExisting float64
+		tx.Table("bids").
+			Where("auction_id = ?", auctionID).
+			Select("COALESCE(MAX(amount), 0)").
+			Scan(&highestExisting)
+
+		if amount <= highestExisting {
+			return ErrBidAmountTooLow
+		}
+
+		newBid = &Bid{
+			AuctionID: auctionID,
+			UserID:    userID,
+			Amount:    amount,
+		}
+
+		if err := tx.Create(newBid).Error; err != nil {
+			return err
+		}
+
+		auction.CurrentPrice = amount
+		if err := tx.Save(&auction).Error; err != nil {
+			return err
+		}
+
+		updatedAuction = &auction
+		return nil
+	})
+
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// 8. Update auction current price.
-	auction.CurrentPrice = amount
-	err = s.AuctionRepository.UpdateAuction(auction)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return bid, auction, nil
+	return newBid, updatedAuction, nil
 }
 
 // GetBidsByAuctionID fetches all bids for a specific auction.
@@ -117,4 +120,10 @@ func (s *Service) GetBidsByAuctionID(auctionID uint) ([]Bid, error) {
 	}
 
 	return s.Repository.GetBidsByAuctionID(auctionID)
+}
+
+// GetMyBids fetches all auctions where the user has placed bids with calculated status.
+func (s *Service) GetMyBids(userID uint) ([]MyBidItem, error) {
+	s.AuctionRepository.EvaluateExpiredAuctions()
+	return s.Repository.GetMyBids(userID)
 }
