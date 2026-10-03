@@ -17,7 +17,7 @@ func NewRepository() *Repository {
 	return &Repository{
 		DB: database.DB,
 	}
-}
+} 
 
 // CreateBid saves a new bid in the database.
 func (r *Repository) CreateBid(bid *Bid) error {
