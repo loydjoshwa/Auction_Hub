@@ -19,6 +19,8 @@ type Auction struct {
 	StartTime     time.Time         `gorm:"not null;index" json:"startTime"`
 	EndTime       time.Time         `gorm:"not null;index" json:"endTime"`
 	Status        string            `gorm:"not null;default:active;index" json:"status"`
+	PausedAt      *time.Time        `gorm:"index" json:"pausedAt,omitempty"`
+	PauseReason   string            `gorm:"-" json:"pauseReason,omitempty"`
 	CreatedAt     time.Time         `json:"createdAt"`
 	UpdatedAt     time.Time         `json:"updatedAt"`
 	Product       *products.Product `gorm:"foreignKey:ProductID" json:"product,omitempty"`

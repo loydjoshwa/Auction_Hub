@@ -648,6 +648,111 @@ export const apiService = {
       body: JSON.stringify({ message }),
     });
   },
+
+  /**
+   * Submit a report for an auction.
+   * POST /api/reports
+   */
+  async createReport(token, { auctionId, reason, description }) {
+    return request("/api/reports", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        auctionId: parseInt(auctionId, 10),
+        reason,
+        description,
+      }),
+    });
+  },
+
+  /**
+   * Fetch reports for admin.
+   * GET /api/admin/reports
+   */
+  async getAdminReports(token, search = "", status = "", sort = "") {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (status) params.append("status", status);
+    if (sort) params.append("sort", sort);
+
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    return request(`/api/admin/reports${queryString}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch single report details for admin.
+   * GET /api/admin/reports/:id
+   */
+  async getAdminReportById(token, reportId) {
+    return request(`/api/admin/reports/${reportId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Update report status with mandatory reason/note for admin.
+   * PATCH /api/admin/reports/:id/status
+   */
+  async updateAdminReportStatus(token, reportId, status, adminReason) {
+    return request(`/api/admin/reports/${reportId}/status`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status, adminReason }),
+    });
+  },
+
+  /**
+   * Pause an active auction with mandatory reason (Admin).
+   * PATCH /api/admin/auctions/:id/pause
+   */
+  async pauseAdminAuction(token, auctionId, reason) {
+    return request(`/api/admin/auctions/${auctionId}/pause`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  /**
+   * Resume a paused auction with mandatory reason (Admin).
+   * PATCH /api/admin/auctions/:id/resume
+   */
+  async resumeAdminAuction(token, auctionId, reason) {
+    return request(`/api/admin/auctions/${auctionId}/resume`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  /**
+   * Fetch submitted reports for the logged-in user.
+   * GET /api/reports/my-reports
+   */
+  async getMyReports(token) {
+    return request("/api/reports/my-reports", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
 };
 
 export default apiService;

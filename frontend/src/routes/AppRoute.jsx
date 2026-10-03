@@ -13,12 +13,15 @@ import WonAuctions from "../pages/buyer/WonAuctions";
 import MyAuctions from "../pages/seller/MyAuctions";
 import OrderDetails from "../pages/buyer/OrderDetails";
 import MyOrders from "../pages/buyer/MyOrders";
+import MyReports from "../pages/buyer/MyReports";
 import Dashboard from "../pages/admin/Dashboard";
 import ManageUsers from "../pages/admin/ManageUsers";
 import ManageProducts from "../pages/admin/ManageProducts";
 import ManageAuctions from "../pages/admin/ManageAuctions";
 import ManageBids from "../pages/admin/ManageBids";
 import ManageOrders from "../pages/admin/ManageOrders";
+import AdminProfile from "../pages/admin/AdminProfile";
+import ManageReports from "../pages/admin/ManageReports";
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 import { useAuth } from "../context/AuthContext";
@@ -181,6 +184,14 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/my-reports"
+            element={
+              <ProtectedRoute>
+                <MyReports />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin"
             element={
               <AdminRoute>
@@ -225,6 +236,22 @@ function AppRoutes() {
             element={
               <AdminRoute>
                 <ManageOrders />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/profile"
+            element={
+              <AdminRoute>
+                <AdminProfile />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/reports"
+            element={
+              <AdminRoute>
+                <ManageReports />
               </AdminRoute>
             }
           />

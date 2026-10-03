@@ -20,6 +20,16 @@ function ManageAuctions() {
     isOpen: false,
     auction: null,
   });
+
+  // Pause/Resume Modal
+  const [pauseModal, setPauseModal] = useState({
+    isOpen: false,
+    auction: null,
+    action: "pause",
+  });
+  const [pauseReason, setPauseReason] = useState("");
+  const [pauseErr, setPauseErr] = useState("");
+
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchAuctions = useCallback(
@@ -84,6 +94,52 @@ function ManageAuctions() {
     }
   };
 
+  const openPauseModal = (auction, action) => {
+    setError("");
+    setSuccessMessage("");
+    setPauseReason("");
+    setPauseErr("");
+    setPauseModal({
+      isOpen: true,
+      auction,
+      action,
+    });
+  };
+
+  const handleConfirmPauseResume = async (e) => {
+    e.preventDefault();
+    if (!pauseModal.auction) return;
+    if (!pauseReason.trim()) {
+      setPauseErr("A reason is mandatory for this action.");
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      setError("");
+      setSuccessMessage("");
+      setPauseErr("");
+
+      let res;
+      if (pauseModal.action === "pause") {
+        res = await apiService.pauseAdminAuction(token, pauseModal.auction.id, pauseReason.trim());
+        setSuccessMessage(res.message || "Auction paused successfully.");
+      } else {
+        res = await apiService.resumeAdminAuction(token, pauseModal.auction.id, pauseReason.trim());
+        setSuccessMessage(res.message || "Auction resumed successfully.");
+      }
+      setPauseModal({ isOpen: false, auction: null, action: "pause" });
+      setPauseReason("");
+      fetchAuctions(search, statusFilter, sortOrder);
+    } catch (err) {
+      setError(err.message || "Failed to update auction status");
+      setPauseModal({ isOpen: false, auction: null, action: "pause" });
+      setPauseReason("");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getImageSrc = (url) => {
     if (!url) return "";
     if (url.startsWith("http")) return url;
@@ -124,7 +180,7 @@ function ManageAuctions() {
         <div>
           <h1 className="admin-title" style={{ fontSize: "1.8rem", fontWeight: "800" }}>Manage Auctions</h1>
           <p className="admin-subtitle" style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
-            Monitor active, completed, and upcoming auction listings across the platform
+            Monitor active, paused, and completed auction listings across the platform
           </p>
         </div>
         <div className="admin-nav-actions">
@@ -174,6 +230,12 @@ function ManageAuctions() {
             Active
           </button>
           <button
+            className={`filter-btn ${statusFilter === "paused" ? "active" : ""}`}
+            onClick={() => setStatusFilter("paused")}
+          >
+            Paused
+          </button>
+          <button
             className={`filter-btn ${statusFilter === "completed" ? "active" : ""}`}
             onClick={() => setStatusFilter("completed")}
           >
@@ -219,10 +281,12 @@ function ManageAuctions() {
             </thead>
             <tbody>
               {auctionsList.map((item) => {
-                const auc = item;
+                const auc = item.auction || item;
                 const title = auc.title || auc.product?.name || "Auction Item";
                 const img = auc.product?.imageUrl || "";
-                const isEnded = auc.status?.toLowerCase() === "completed" || new Date(auc.endTime) <= new Date();
+                const statusLower = (auc.status || "").toLowerCase();
+                const isPaused = statusLower === "paused";
+                const isEnded = statusLower === "completed" || (statusLower === "active" && new Date(auc.endTime) <= new Date());
 
                 return (
                   <tr key={auc.id} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}>
@@ -258,12 +322,22 @@ function ManageAuctions() {
                       <span
                         className="badge"
                         style={{
-                          background: !isEnded ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
-                          color: !isEnded ? "#34d399" : "#f87171",
-                          border: `1px solid ${!isEnded ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
+                          background: isPaused
+                            ? "rgba(245, 158, 11, 0.15)"
+                            : !isEnded
+                            ? "rgba(16, 185, 129, 0.15)"
+                            : "rgba(239, 68, 68, 0.15)",
+                          color: isPaused ? "#fbbf24" : !isEnded ? "#34d399" : "#f87171",
+                          border: `1px solid ${
+                            isPaused
+                              ? "rgba(245, 158, 11, 0.3)"
+                              : !isEnded
+                              ? "rgba(16, 185, 129, 0.3)"
+                              : "rgba(239, 68, 68, 0.3)"
+                          }`,
                         }}
                       >
-                        ● {!isEnded ? "Active" : "Completed"}
+                        ● {isPaused ? "Paused" : !isEnded ? "Active" : "Completed"}
                       </span>
                     </td>
 
@@ -281,20 +355,38 @@ function ManageAuctions() {
                     </td>
 
                     <td style={{ padding: "0.85rem 1rem", textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-                        {!isEnded && (
+                      <div style={{ display: "flex", gap: "0.4rem", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                        {!isEnded && !isPaused && (
+                          <>
+                            <button
+                              className="btn btn-warning"
+                              onClick={() => openPauseModal(auc, "pause")}
+                              style={{ width: "auto", padding: "0.35rem 0.75rem", fontSize: "0.8rem", background: "rgba(245, 158, 11, 0.15)", color: "#fbbf24", border: "1px solid rgba(245, 158, 11, 0.3)" }}
+                            >
+                              Pause
+                            </button>
+                            <button
+                              className="btn btn-danger"
+                              onClick={() => openCancelConfirmation(auc)}
+                              style={{ width: "auto", padding: "0.35rem 0.75rem", fontSize: "0.8rem" }}
+                            >
+                              End Auction
+                            </button>
+                          </>
+                        )}
+                        {isPaused && (
                           <button
-                            className="btn btn-danger"
-                            onClick={() => openCancelConfirmation(auc)}
-                            style={{ width: "auto", padding: "0.35rem 0.8rem", fontSize: "0.8rem" }}
+                            className="btn btn-primary"
+                            onClick={() => openPauseModal(auc, "resume")}
+                            style={{ width: "auto", padding: "0.35rem 0.75rem", fontSize: "0.8rem" }}
                           >
-                            End Auction
+                            Resume
                           </button>
                         )}
                         <button
                           className="btn btn-secondary"
                           onClick={() => navigate(`/auctions/${auc.id}`)}
-                          style={{ width: "auto", padding: "0.35rem 0.8rem", fontSize: "0.8rem" }}
+                          style={{ width: "auto", padding: "0.35rem 0.75rem", fontSize: "0.8rem" }}
                         >
                           View Details
                         </button>
@@ -334,6 +426,71 @@ function ManageAuctions() {
                 {actionLoading ? "Ending..." : "End Auction"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pause / Resume Confirmation Modal */}
+      {pauseModal.isOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-card" style={{ maxWidth: "500px", width: "100%" }}>
+            <h3 className="modal-title">
+              {pauseModal.action === "pause" ? "Confirm Pause Auction" : "Confirm Resume Auction"}
+            </h3>
+            <p className="modal-body">
+              {pauseModal.action === "pause"
+                ? `You are about to pause auction "${pauseModal.auction?.title}". Bidding will be temporarily disabled and auction timer will freeze.`
+                : `You are about to resume auction "${pauseModal.auction?.title}". Bidding will reactivate and remaining time will continue.`}
+            </p>
+
+            <form onSubmit={handleConfirmPauseResume}>
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "700", marginBottom: "0.4rem" }}>
+                  Reason <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  className="form-input"
+                  placeholder={pauseModal.action === "pause" ? "Enter mandatory reason for pausing..." : "Enter mandatory reason for resuming..."}
+                  value={pauseReason}
+                  onChange={(e) => {
+                    setPauseReason(e.target.value);
+                    if (e.target.value.trim()) setPauseErr("");
+                  }}
+                  style={{ width: "100%" }}
+                  required
+                />
+                {pauseErr && <p style={{ color: "#f87171", fontSize: "0.8rem", marginTop: "0.35rem" }}>{pauseErr}</p>}
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setPauseModal({ isOpen: false, auction: null, action: "pause" });
+                    setPauseReason("");
+                    setPauseErr("");
+                  }}
+                  disabled={actionLoading}
+                  style={{ width: "auto" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={pauseModal.action === "pause" ? "btn btn-danger" : "btn btn-primary"}
+                  disabled={actionLoading}
+                  style={{ width: "auto" }}
+                >
+                  {actionLoading
+                    ? "Processing..."
+                    : pauseModal.action === "pause"
+                    ? "Pause Auction"
+                    : "Resume Auction"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

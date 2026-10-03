@@ -13,6 +13,7 @@ import (
 var (
 	ErrAuctionNotFound  = errors.New("auction not found")
 	ErrAuctionNotActive = errors.New("auction is not active")
+	ErrAuctionPaused    = errors.New("this auction is currently paused by administrator. New bids are not allowed")
 	ErrAuctionEnded     = errors.New("auction has ended")
 	ErrSellerCannotBid  = errors.New("seller cannot bid on own auction")
 	ErrBidAmountTooLow  = errors.New("bid amount must be greater than current price")
@@ -52,6 +53,10 @@ func (s *Service) CreateBid(userID uint, auctionID uint, amount float64) (*Bid, 
 				return ErrAuctionNotFound
 			}
 			return err
+		}
+
+		if strings.ToLower(auction.Status) == "paused" {
+			return ErrAuctionPaused
 		}
 
 		if strings.ToLower(auction.Status) != "active" {

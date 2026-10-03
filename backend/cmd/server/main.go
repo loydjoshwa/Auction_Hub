@@ -19,6 +19,7 @@ import (
 	"auction-hub/modules/notifications"
 	"auction-hub/modules/orders"
 	"auction-hub/modules/products"
+	"auction-hub/modules/reports"
 	"auction-hub/modules/sellers"
 	"auction-hub/modules/users"
 )
@@ -63,6 +64,7 @@ func main() {
 		&orders.Order{},
 		&orders.OrderTrackingHistory{},
 		&admin.AdminActionLog{},
+		&reports.Report{},
 	)
 	if err != nil {
 		log.Fatal("Failed to migrate database tables:", err)
@@ -116,6 +118,9 @@ func main() {
 
 	// Chat routes
 	chat.RegisterRoutes(api)
+
+	// Report routes
+	reports.RegisterRoutes(api)
 
 	log.Println("Auction Hub server started on http://localhost:8080")
 

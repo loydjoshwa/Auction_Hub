@@ -117,7 +117,7 @@ func (r *Repository) GetActiveAuctions() ([]Auction, error) {
 	err := r.DB.
 		Preload("Product").
 		Preload("Seller").
-		Where("status = ? AND end_time > ?", "active", now).
+		Where("(status = ? OR status = ?) AND end_time > ?", "active", "paused", now).
 		Order("created_at DESC").
 		Find(&auctions).Error
 
@@ -153,6 +153,21 @@ func (r *Repository) GetAuctionByID(auctionID uint) (*Auction, error) {
 	if auction.Status == "active" && (time.Now().After(auction.EndTime) || time.Now().Equal(auction.EndTime)) {
 		r.EvaluateExpiredAuctions()
 		_ = r.DB.Preload("Product").Preload("Seller").First(&auction, auctionID).Error
+	}
+
+	if auction.Status == "paused" {
+		type LogReason struct {
+			Reason string
+		}
+		var logRes LogReason
+		errLog := r.DB.Table("admin_action_logs").
+			Select("reason").
+			Where("action_type = ? AND entity_id = ?", "PAUSE_AUCTION", auction.ID).
+			Order("created_at DESC").
+			First(&logRes).Error
+		if errLog == nil && logRes.Reason != "" {
+			auction.PauseReason = logRes.Reason
+		}
 	}
 
 	var count int64

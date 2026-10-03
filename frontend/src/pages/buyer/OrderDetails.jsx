@@ -498,13 +498,13 @@ function OrderDetails() {
               {(isBuyer || isSeller) && (
                 <button
                   onClick={() => {
-                    setChatOpen((prev) => !prev);
-                    if (!chatOpen) fetchChat();
+                    setChatOpen(true);
+                    fetchChat();
                   }}
                   className="btn btn-secondary"
                   style={{ width: "auto" }}
                 >
-                  💬 {chatOpen ? "Close Chat" : isBuyer ? "Chat with Seller" : "Chat with Buyer"}
+                  💬 {isBuyer ? "Chat with Seller" : "Chat with Buyer"}
                 </button>
               )}
             </div>
@@ -566,65 +566,94 @@ function OrderDetails() {
         </div>
       )}
 
-      {/* Live Chat Drawer Section */}
+      {/* Live Chat Modal Popup */}
       {chatOpen && (
-        <div className="card" style={{ padding: "1.5rem", border: "1px solid var(--primary-light)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--text-main)", margin: 0 }}>
-              💬 Direct Messages ({isBuyer ? `Seller: ${order.seller?.name || "Seller"}` : `Buyer: ${order.buyer?.name || "Buyer"}`})
-            </h3>
-            <button onClick={() => setChatOpen(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.2rem" }}>
-              &times;
-            </button>
-          </div>
+        <div className="modal-backdrop" onClick={() => setChatOpen(false)}>
+          <div
+            className="modal-card"
+            style={{ maxWidth: "560px", width: "100%", padding: "1.5rem" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", borderBottom: "1px solid var(--bg-card-border)", paddingBottom: "0.75rem" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--text-main)", margin: 0 }}>
+                💬 Live Chat ({isBuyer ? `Seller: ${order.seller?.name || "Seller"}` : `Buyer: ${order.buyer?.name || "Buyer"}`})
+              </h3>
+              <button
+                type="button"
+                onClick={() => setChatOpen(false)}
+                title="Close Chat"
+                aria-label="Close Chat"
+                style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.5rem", lineHeight: 1 }}
+              >
+                &times;
+              </button>
+            </div>
 
-          {/* Messages Window */}
-          <div style={{ background: "rgba(15, 23, 42, 0.6)", borderRadius: "var(--radius-md)", padding: "1rem", height: "260px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1rem" }}>
-            {messages.length === 0 ? (
-              <p style={{ color: "var(--text-dim)", textAlign: "center", margin: "auto" }}>
-                No messages yet. Send a message to start communicating!
-              </p>
-            ) : (
-              messages.map((m) => {
-                const isMe = m.senderId === user?.id;
-                return (
-                  <div key={m.id} style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
-                    <div
-                      style={{
-                        padding: "0.6rem 0.9rem",
-                        borderRadius: "12px",
-                        maxWidth: "70%",
-                        fontSize: "0.9rem",
-                        background: isMe ? "var(--primary)" : "rgba(255, 255, 255, 0.08)",
-                        color: isMe ? "#ffffff" : "var(--text-main)",
-                      }}
-                    >
-                      {m.message}
+            {/* Messages Window */}
+            <div
+              style={{
+                background: "rgba(15, 23, 42, 0.7)",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid rgba(255, 255, 255, 0.05)",
+                padding: "1rem",
+                height: "320px",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
+                marginBottom: "1rem",
+              }}
+            >
+              {messages.length === 0 ? (
+                <p style={{ color: "var(--text-dim)", textAlign: "center", margin: "auto" }}>
+                  No messages yet. Send a message to start communicating!
+                </p>
+              ) : (
+                messages.map((m) => {
+                  const isMe = m.senderId === user?.id;
+                  return (
+                    <div key={m.id} style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
+                      <div
+                        style={{
+                          padding: "0.6rem 0.9rem",
+                          borderRadius: "12px",
+                          maxWidth: "75%",
+                          fontSize: "0.9rem",
+                          background: isMe ? "var(--primary)" : "rgba(255, 255, 255, 0.08)",
+                          color: isMe ? "#ffffff" : "var(--text-main)",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {m.message}
+                      </div>
+                      <span style={{ fontSize: "0.7rem", color: "var(--text-dim)", marginTop: "0.2rem" }}>
+                        {m.sender?.name || (isMe ? "You" : "Other")}
+                      </span>
                     </div>
-                    <span style={{ fontSize: "0.7rem", color: "var(--text-dim)", marginTop: "0.2rem" }}>
-                      {m.sender?.name || (isMe ? "You" : "Other")}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                  );
+                })
+              )}
+            </div>
 
-          {/* Message Input Form */}
-          <form onSubmit={handleSendMessage} style={{ display: "flex", gap: "0.75rem" }}>
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="form-control"
-              style={{ flex: 1 }}
-              disabled={sendingMsg}
-            />
-            <button type="submit" className="btn btn-primary" disabled={sendingMsg} style={{ width: "auto" }}>
-              {sendingMsg ? "Sending..." : "Send"}
-            </button>
-          </form>
+            {/* Message Input Form */}
+            <form onSubmit={handleSendMessage} style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem" }}>
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="form-control"
+                style={{ flex: 1 }}
+                disabled={sendingMsg}
+              />
+              <button type="submit" className="btn btn-primary" disabled={sendingMsg} style={{ width: "auto" }}>
+                {sendingMsg ? "Sending..." : "Send"}
+              </button>
+            </form>
+
+            
+          </div>
         </div>
       )}
     </div>

@@ -27,6 +27,8 @@ func RegisterRoutes(router *gin.RouterGroup) {
 		// Manage Auctions
 		adminRoutes.GET("/auctions", controller.GetAllAuctions)
 		adminRoutes.PATCH("/auctions/:id/cancel", controller.CancelAuction)
+		adminRoutes.PATCH("/auctions/:id/pause", controller.PauseAuction)
+		adminRoutes.PATCH("/auctions/:id/resume", controller.ResumeAuction)
 
 		// Manage Bids
 		adminRoutes.GET("/bids", controller.GetAllBids)

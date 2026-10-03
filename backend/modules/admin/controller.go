@@ -294,6 +294,104 @@ func (c *Controller) CancelAuction(ctx *gin.Context) {
 	})
 }
 
+// PauseAuction allows admin to pause an active auction with mandatory reason.
+func (c *Controller) PauseAuction(ctx *gin.Context) {
+	adminUserID, _ := getUserIDFromContext(ctx)
+	idParam := ctx.Param("id")
+	targetID, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid auction ID",
+		})
+		return
+	}
+
+	var reqBody struct {
+		Reason string `json:"reason"`
+	}
+	_ = ctx.ShouldBindJSON(&reqBody)
+
+	reason := reqBody.Reason
+	if reason == "" {
+		reason = ctx.Query("reason")
+	}
+
+	if reason == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "A reason is required to pause this auction",
+		})
+		return
+	}
+
+	auction, err := c.Service.PauseAuction(adminUserID, uint(targetID), reason)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"message": "Auction not found",
+			})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Auction paused successfully",
+		"auction": auction,
+	})
+}
+
+// ResumeAuction allows admin to resume a paused auction with mandatory reason.
+func (c *Controller) ResumeAuction(ctx *gin.Context) {
+	adminUserID, _ := getUserIDFromContext(ctx)
+	idParam := ctx.Param("id")
+	targetID, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid auction ID",
+		})
+		return
+	}
+
+	var reqBody struct {
+		Reason string `json:"reason"`
+	}
+	_ = ctx.ShouldBindJSON(&reqBody)
+
+	reason := reqBody.Reason
+	if reason == "" {
+		reason = ctx.Query("reason")
+	}
+
+	if reason == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "A reason is required to resume this auction",
+		})
+		return
+	}
+
+	auction, err := c.Service.ResumeAuction(adminUserID, uint(targetID), reason)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"message": "Auction not found",
+			})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Auction resumed successfully",
+		"auction": auction,
+	})
+}
+
 // GetAllBids returns all bids placed on auctions with bidder & auction details.
 func (c *Controller) GetAllBids(ctx *gin.Context) {
 	search := ctx.Query("search")

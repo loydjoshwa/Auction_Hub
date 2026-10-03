@@ -24,6 +24,52 @@ function AuctionDetails() {
     isExpired: false,
   });
 
+  // Report Modal State
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("Fraud / Scam");
+  const [otherReason, setOtherReason] = useState("");
+  const [reportDesc, setReportDesc] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [reportError, setReportError] = useState("");
+  const [reportSuccess, setReportSuccess] = useState("");
+
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+    if (!token) {
+      alert("Please log in to report an auction.");
+      return;
+    }
+
+    const finalReason = reportReason === "Other" ? (otherReason.trim() || "Other") : reportReason;
+    if (!finalReason) {
+      setReportError("Please select or specify a reason.");
+      return;
+    }
+
+    if (!reportDesc.trim()) {
+      setReportError("Please enter a description for your report.");
+      return;
+    }
+
+    try {
+      setSubmittingReport(true);
+      setReportError("");
+      const res = await apiService.createReport(token, {
+        auctionId: auction.id,
+        reason: finalReason,
+        description: reportDesc.trim(),
+      });
+      setReportSuccess(res.message || "🚩 Report submitted successfully. Thank you!");
+      setReportModalOpen(false);
+      setReportDesc("");
+      setOtherReason("");
+    } catch (err) {
+      setReportError(err.message || "Failed to submit report. Please try again.");
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
   const handleEndAuction = async () => {
     if (!window.confirm("Are you sure you want to end this auction now? Bidding will be closed immediately.")) {
       return;
@@ -204,6 +250,9 @@ function AuctionDetails() {
     }
   };
 
+  const isAdmin = user?.role === "admin";
+  const backToAuctionsPath = isAdmin ? "/admin/auctions" : "/auctions";
+
   if (loading) {
     return (
       <div className="container" style={{ padding: "3rem 1.5rem", maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
@@ -219,8 +268,8 @@ function AuctionDetails() {
         <div className="alert alert-error" style={{ marginBottom: "1.5rem" }}>
           <span>{error || "Auction not found."}</span>
         </div>
-        <Link to="/auctions" className="btn btn-secondary" style={{ display: "inline-flex", width: "auto" }}>
-          ← Back to Active Auctions
+        <Link to={backToAuctionsPath} className="btn btn-secondary" style={{ display: "inline-flex", width: "auto" }}>
+          ← {isAdmin ? "Back to Manage Auctions" : "Back to Active Auctions"}
         </Link>
       </div>
     );
@@ -231,14 +280,22 @@ function AuctionDetails() {
   const description = auction.description || auction.product?.description || "No description provided.";
   const sellerName = auction.seller?.name || `Seller #${auction.sellerId}`;
   const totalBidsCount = auction.bidCount !== undefined ? auction.bidCount : bids.length;
+  const isPaused = auction.status?.toLowerCase() === "paused";
   const isAuctionActive = auction.status?.toLowerCase() === "active" && !timeLeft.isExpired;
 
   return (
     <div className="container" style={{ padding: "2rem 1.5rem", maxWidth: "1150px", margin: "0 auto" }}>
+      {reportSuccess && (
+        <div className="alert alert-success" style={{ marginBottom: "1.25rem", justifyContent: "space-between" }}>
+          <span>{reportSuccess}</span>
+          <button onClick={() => setReportSuccess("")} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: "1.1rem" }}>×</button>
+        </div>
+      )}
+
       {/* Top Breadcrumb Navigation */}
       <div style={{ marginBottom: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Link
-          to="/auctions"
+          to={backToAuctionsPath}
           style={{
             color: "var(--text-muted)",
             fontSize: "0.9rem",
@@ -251,21 +308,56 @@ function AuctionDetails() {
           ← Back to Auctions
         </Link>
 
-        {/* Status Badge */}
-        <span
-          className="badge"
-          style={{
-            background: isAuctionActive ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
-            color: isAuctionActive ? "#34d399" : "#f87171",
-            border: `1px solid ${isAuctionActive ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
-            padding: "0.3rem 0.8rem",
-            fontSize: "0.8rem",
-            fontWeight: "700",
-            letterSpacing: "0.05em",
-          }}
-        >
-          ● {isAuctionActive ? "ACTIVE AUCTION" : "AUCTION ENDED"}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          {/* User Report Action */}
+          {user && !isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setReportModalOpen(true);
+                setReportError("");
+              }}
+              className="btn btn-secondary"
+              style={{
+                width: "auto",
+                padding: "0.3rem 0.8rem",
+                fontSize: "0.8rem",
+                fontWeight: "600",
+                color: "#f87171",
+                borderColor: "rgba(239, 68, 68, 0.3)",
+                background: "rgba(239, 68, 68, 0.08)",
+              }}
+            >
+              🚩 Report
+            </button>
+          )}
+
+          {/* Status Badge */}
+          <span
+            className="badge"
+            style={{
+              background: isPaused
+                ? "rgba(245, 158, 11, 0.15)"
+                : isAuctionActive
+                ? "rgba(16, 185, 129, 0.15)"
+                : "rgba(239, 68, 68, 0.15)",
+              color: isPaused ? "#fbbf24" : isAuctionActive ? "#34d399" : "#f87171",
+              border: `1px solid ${
+                isPaused
+                  ? "rgba(245, 158, 11, 0.3)"
+                  : isAuctionActive
+                  ? "rgba(16, 185, 129, 0.3)"
+                  : "rgba(239, 68, 68, 0.3)"
+              }`,
+              padding: "0.3rem 0.8rem",
+              fontSize: "0.8rem",
+              fontWeight: "700",
+              letterSpacing: "0.05em",
+            }}
+          >
+            ● {isPaused ? "AUCTION PAUSED" : isAuctionActive ? "ACTIVE AUCTION" : "AUCTION ENDED"}
+          </span>
+        </div>
       </div>
 
       {/* Main Grid: Left (Product Info) & Right (Bidding Console) */}
@@ -346,7 +438,16 @@ function AuctionDetails() {
 
           {/* Bid Action Form or Restriction Alerts */}
           <div className="bidding-form-section">
-            {isSeller ? (
+            {isPaused ? (
+              <div className="alert alert-warning" style={{ margin: 0, textAlign: "center", display: "block" }}>
+                <p style={{ fontWeight: "700", marginBottom: "0.3rem", fontSize: "1rem" }}>⏸️ Auction Paused</p>
+                <p style={{ fontSize: "0.85rem", marginBottom: 0 }}>
+                  {auction.pauseReason
+                    ? `Reason: "${auction.pauseReason}"`
+                    : "This auction is temporarily paused by administrator. New bids are disabled."}
+                </p>
+              </div>
+            ) : isSeller ? (
               <div className="alert alert-warning" style={{ margin: 0, textAlign: "center", display: "block" }}>
                 <p style={{ fontWeight: "700", marginBottom: "0.4rem" }}>⛔ Seller Controls</p>
                 <p style={{ fontSize: "0.85rem", marginBottom: isAuctionActive ? "0.8rem" : "0" }}>
@@ -385,50 +486,87 @@ function AuctionDetails() {
               </div>
             ) : (
               <form onSubmit={handleBidSubmit}>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "700", marginBottom: "0.5rem", color: "var(--text-main)" }}>
-                  Enter Your Bid Amount (₹):
-                </label>
+                <div style={{ marginBottom: "0.85rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                    <label style={{ fontSize: "0.9rem", fontWeight: "700", color: "var(--text-main)", margin: 0 }}>
+                      💰 Enter Bid Amount (₹):
+                    </label>
+                    <span style={{ fontSize: "0.78rem", color: "#a5b4fc", background: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.3)", padding: "0.2rem 0.6rem", borderRadius: "6px", fontWeight: "600" }}>
+                      Min: {formatPrice(auction.currentPrice + 1)}
+                    </span>
+                  </div>
 
-                <div style={{ display: "flex", gap: "0.6rem", marginBottom: "0.5rem" }}>
-                  <div style={{ position: "relative", flex: 1 }}>
-                    <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontWeight: "700" }}>
+                  <div style={{ position: "relative", width: "100%" }}>
+                    <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "#a5b4fc", fontWeight: "800", fontSize: "1.15rem", zIndex: 1 }}>
                       ₹
                     </span>
                     <input
                       type="number"
                       step="any"
                       min={auction.currentPrice + 0.01}
-                      placeholder={`Enter > ${auction.currentPrice}`}
+                      placeholder={`e.g. ${auction.currentPrice + 100}`}
                       value={bidAmount}
                       onChange={(e) => {
                         setBidAmount(e.target.value);
                         setFieldError("");
                       }}
                       className="form-control"
-                      style={{ paddingLeft: "2rem", width: "100%" }}
+                      style={{
+                        paddingLeft: "2.75rem",
+                        paddingRight: "1rem",
+                        width: "100%",
+                        height: "48px",
+                        fontSize: "1.1rem",
+                        fontWeight: "700",
+                        color: "#ffffff",
+                        background: "rgba(15, 23, 42, 0.8)",
+                        border: fieldError ? "1.5px solid #ef4444" : "1.5px solid rgba(99, 102, 241, 0.4)",
+                        borderRadius: "10px",
+                        boxSizing: "border-box",
+                      }}
                       disabled={submitting}
                       required
                     />
                   </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={submitting}
-                    style={{ minWidth: "120px" }}
-                  >
-                    {submitting ? "Placing..." : "Place Bid"}
-                  </button>
                 </div>
 
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={submitting}
+                  style={{
+                    width: "100%",
+                    height: "46px",
+                    fontSize: "0.95rem",
+                    fontWeight: "700",
+                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                    border: "none",
+                    borderRadius: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.5rem",
+                    boxShadow: "0 4px 14px rgba(79, 70, 229, 0.4)",
+                  }}
+                >
+                  {submitting ? (
+                    <>
+                      <span className="spinner" style={{ width: "16px", height: "16px", borderWidth: "2px" }}></span>
+                      <span>Placing Bid...</span>
+                    </>
+                  ) : (
+                    <span>⚡ Place Bid</span>
+                  )}
+                </button>
+
                 {fieldError && (
-                  <p style={{ color: "var(--error)", fontSize: "0.825rem", marginTop: "0.6rem", fontWeight: "600" }}>
+                  <p style={{ color: "#f87171", fontSize: "0.83rem", marginTop: "0.6rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "0.3rem" }}>
                     ⚠️ {fieldError}
                   </p>
                 )}
 
                 {successMsg && (
-                  <div className="alert alert-success" style={{ marginTop: "0.75rem", padding: "0.6rem 0.8rem", fontSize: "0.85rem" }}>
+                  <div className="alert alert-success" style={{ marginTop: "0.75rem", padding: "0.65rem 0.85rem", fontSize: "0.85rem", borderRadius: "8px" }}>
                     {successMsg}
                   </div>
                 )}
@@ -623,6 +761,102 @@ function AuctionDetails() {
           }
         }
       `}</style>
+
+      {/* Report Modal Popup */}
+      {reportModalOpen && (
+        <div className="modal-backdrop" onClick={() => setReportModalOpen(false)}>
+          <div
+            className="modal-card"
+            style={{ maxWidth: "500px", width: "100%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="modal-title">Report Auction</h3>
+            <p className="modal-body" style={{ marginBottom: "1rem" }}>
+              Reporting auction: <strong>{title}</strong>
+            </p>
+
+            {reportError && (
+              <div className="alert alert-error" style={{ marginBottom: "1rem" }}>
+                <span>{reportError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleReportSubmit}>
+              <div style={{ marginBottom: "1rem" }}>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "700", marginBottom: "0.4rem" }}>
+                  Reason <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                <select
+                  className="form-input"
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  style={{ width: "100%" }}
+                  required
+                >
+                  <option value="Fraud / Scam">Fraud / Scam</option>
+                  <option value="Misleading Information">Misleading Information</option>
+                  <option value="Fake Product">Fake Product</option>
+                  <option value="Inappropriate Content">Inappropriate Content</option>
+                  <option value="Suspicious Auction">Suspicious Auction</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {reportReason === "Other" && (
+                <div style={{ marginBottom: "1rem" }}>
+                  <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "700", marginBottom: "0.4rem" }}>
+                    Specify Reason <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="State your reason..."
+                    value={otherReason}
+                    onChange={(e) => setOtherReason(e.target.value)}
+                    style={{ width: "100%" }}
+                    required
+                  />
+                </div>
+              )}
+
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "700", marginBottom: "0.4rem" }}>
+                  Description / Details <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                <textarea
+                  rows={4}
+                  className="form-input"
+                  placeholder="Please provide details about your report..."
+                  value={reportDesc}
+                  onChange={(e) => setReportDesc(e.target.value)}
+                  style={{ width: "100%" }}
+                  required
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setReportModalOpen(false)}
+                  disabled={submittingReport}
+                  style={{ width: "auto" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-danger"
+                  disabled={submittingReport}
+                  style={{ width: "auto" }}
+                >
+                  {submittingReport ? "Submitting..." : "Submit Report"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -74,6 +74,14 @@ function Navbar() {
                     Manage Orders
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    to="/admin/reports"
+                    className={`nav-link ${isActive("/admin/reports") ? "active" : ""}`}
+                  >
+                    Reports
+                  </Link>
+                </li>
               </>
             ) : (
               <>
@@ -145,7 +153,19 @@ function Navbar() {
         <div className="nav-user-info">
           {isLoggedIn ? (
             <>
-              {!isAdmin && (
+              {isAdmin ? (
+                <Link to="/admin/profile" style={{ textDecoration: "none" }}>
+                  <div
+                    className="user-avatar-badge"
+                    style={isActive("/admin/profile") ? { borderColor: "rgba(236, 72, 153, 0.5)", background: "rgba(236, 72, 153, 0.1)" } : {}}
+                  >
+                    <div className="avatar-circle" style={{ background: "linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)" }}>
+                      {user?.name ? user.name.charAt(0).toUpperCase() : "A"}
+                    </div>
+                    <span className="user-display-name">{user?.name || "Admin"}</span>
+                  </div>
+                </Link>
+              ) : (
                 <Link to="/profile" style={{ textDecoration: "none" }}>
                   <div className="user-avatar-badge">
                     <div className="avatar-circle">

@@ -274,6 +274,8 @@ func (r *Repository) GetAllAuctions(search string, statusFilter string, sort str
 	statusFilter = strings.ToLower(strings.TrimSpace(statusFilter))
 	if statusFilter == "active" {
 		query = query.Where("status = ? AND end_time > ?", "active", now)
+	} else if statusFilter == "paused" {
+		query = query.Where("status = ?", "paused")
 	} else if statusFilter == "completed" || statusFilter == "ended" {
 		query = query.Where("status = ? OR end_time <= ?", "completed", now)
 	}
@@ -341,6 +343,65 @@ func (r *Repository) CancelAuction(adminUserID uint, auctionID uint, reason stri
 	if reason != "" {
 		_ = r.LogAdminAction(adminUserID, "CANCEL_AUCTION", "AUCTION", auctionID, reason)
 	}
+
+	return &auction, nil
+}
+
+func (r *Repository) PauseAuction(adminUserID uint, auctionID uint, reason string) (*auctions.Auction, error) {
+	var auction auctions.Auction
+	if err := r.DB.First(&auction, auctionID).Error; err != nil {
+		return nil, err
+	}
+
+	if strings.ToLower(auction.Status) != "active" {
+		return nil, errors.New("Only active auctions can be paused.")
+	}
+
+	if strings.TrimSpace(reason) == "" {
+		return nil, errors.New("A reason is required to pause this auction.")
+	}
+
+	now := time.Now()
+	auction.Status = "paused"
+	auction.PausedAt = &now
+
+	if err := r.DB.Save(&auction).Error; err != nil {
+		return nil, err
+	}
+
+	_ = r.LogAdminAction(adminUserID, "PAUSE_AUCTION", "AUCTION", auctionID, reason)
+
+	return &auction, nil
+}
+
+func (r *Repository) ResumeAuction(adminUserID uint, auctionID uint, reason string) (*auctions.Auction, error) {
+	var auction auctions.Auction
+	if err := r.DB.First(&auction, auctionID).Error; err != nil {
+		return nil, err
+	}
+
+	if strings.ToLower(auction.Status) != "paused" {
+		return nil, errors.New("Only paused auctions can be resumed.")
+	}
+
+	if strings.TrimSpace(reason) == "" {
+		return nil, errors.New("A reason is required to resume this auction.")
+	}
+
+	now := time.Now()
+	if auction.PausedAt != nil {
+		pausedDuration := now.Sub(*auction.PausedAt)
+		auction.EndTime = auction.EndTime.Add(pausedDuration)
+		auction.PausedAt = nil
+	}
+
+	auction.Status = "active"
+
+	if err := r.DB.Save(&auction).Error; err != nil {
+		return nil, err
+	}
+
+	_ = r.LogAdminAction(adminUserID, "RESUME_AUCTION", "AUCTION", auctionID, reason)
 
 	return &auction, nil
 }

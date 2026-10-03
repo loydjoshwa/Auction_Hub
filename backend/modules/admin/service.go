@@ -60,6 +60,14 @@ func (s *Service) CancelAuction(adminUserID uint, auctionID uint, reason string)
 	return s.Repository.CancelAuction(adminUserID, auctionID, reason)
 }
 
+func (s *Service) PauseAuction(adminUserID uint, auctionID uint, reason string) (*auctions.Auction, error) {
+	return s.Repository.PauseAuction(adminUserID, auctionID, reason)
+}
+
+func (s *Service) ResumeAuction(adminUserID uint, auctionID uint, reason string) (*auctions.Auction, error) {
+	return s.Repository.ResumeAuction(adminUserID, auctionID, reason)
+}
+
 // Manage Bids Service
 func (s *Service) GetAllBids(search string, auctionIDStr string, bidderIDStr string, sort string) ([]AdminBidItem, error) {
 	return s.Repository.GetAllBids(search, auctionIDStr, bidderIDStr, sort)
