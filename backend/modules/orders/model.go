@@ -14,7 +14,7 @@ type Order struct {
 	SellerID        uint                   `gorm:"not null;index" json:"sellerId"`
 	FinalAmount     float64                `gorm:"not null" json:"finalAmount"`
 	DeliveryAddress string                 `gorm:"type:text" json:"deliveryAddress"`
-	Status          string                 `gorm:"not null;default:'confirmed';index" json:"status"`
+	Status          string                 `gorm:"not null;default:'Pending Address';index" json:"status"`
 	CreatedAt       time.Time              `json:"createdAt"`
 	UpdatedAt       time.Time              `json:"updatedAt"`
 	Auction         *auctions.Auction      `gorm:"foreignKey:AuctionID" json:"auction,omitempty"`

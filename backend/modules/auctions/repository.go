@@ -2,15 +2,18 @@ package auctions
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	"auction-hub/database"
+	"auction-hub/modules/notifications"
 
 	"gorm.io/gorm"
 )
 
 type Repository struct {
-	DB *gorm.DB
+	DB                  *gorm.DB
+	NotificationService *notifications.Service
 }
 
 func NewRepository() *Repository {
@@ -66,41 +69,140 @@ func (r *Repository) EvaluateExpiredAuctions() {
 	var targetAuctions []Auction
 	now := time.Now()
 
-	err := r.DB.Where("(status = ? AND end_time <= ?) OR status = ?", "active", now, "completed").Find(&targetAuctions).Error
+	err := r.DB.
+		Where("(status = ? AND end_time <= ?) OR status = ?", "active", now, "completed").
+		Find(&targetAuctions).Error
+
 	if err != nil || len(targetAuctions) == 0 {
 		return
 	}
 
 	for _, auction := range targetAuctions {
+
+		// Mark expired active auctions as completed.
 		if auction.Status == "active" {
-			r.DB.Model(&Auction{}).Where("id = ?", auction.ID).Update("status", "completed")
+			if err := r.DB.Model(&Auction{}).
+				Where("id = ? AND status = ?", auction.ID, "active").
+				Update("status", "completed").Error; err != nil {
+				continue
+			}
 		}
 
-		var count int64
-		r.DB.Table("orders").Where("auction_id = ?", auction.ID).Count(&count)
-		if count > 0 {
+		// Check whether an order already exists.
+		var orderCount int64
+		if err := r.DB.Table("orders").
+			Where("auction_id = ?", auction.ID).
+			Count(&orderCount).Error; err != nil {
 			continue
 		}
 
+		// Find the highest bidder.
 		type HighestBidResult struct {
 			UserID uint
 			Amount float64
 		}
+
 		var topBid HighestBidResult
+
 		bidErr := r.DB.Table("bids").
 			Select("user_id, amount").
 			Where("auction_id = ?", auction.ID).
-			Order("amount DESC").
+			Order("amount DESC, created_at ASC").
 			First(&topBid).Error
 
-		if bidErr == nil && topBid.UserID > 0 {
-			r.DB.Exec(
-				"INSERT INTO orders (auction_id, buyer_id, seller_id, final_amount, delivery_address, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-				auction.ID, topBid.UserID, auction.SellerID, topBid.Amount, "", "confirmed", now, now,
-			)
-			r.DB.Table("products").Where("id = ?", auction.ProductID).Update("status", "Completed")
-		} else {
-			r.DB.Table("products").Where("id = ?", auction.ProductID).Update("status", "Ready for Auction")
+		if errors.Is(bidErr, gorm.ErrRecordNotFound) {
+			// No bids: make the product available for auction again.
+			r.DB.Table("products").
+				Where("id = ?", auction.ProductID).
+				Update("status", "Ready for Auction")
+
+			continue
+		}
+
+		if bidErr != nil {
+			continue
+		}
+
+		if topBid.UserID == 0 {
+			continue
+		}
+
+		// Create the winner's order only if one does not already exist.
+		if orderCount == 0 {
+			err := r.DB.Exec(
+				`INSERT INTO orders
+				(auction_id, buyer_id, seller_id, final_amount, delivery_address, status, created_at, updated_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+				auction.ID,
+				topBid.UserID,
+				auction.SellerID,
+				topBid.Amount,
+				"",
+				"Pending Address",
+				now,
+				now,
+			).Error
+
+			if err != nil {
+				continue
+			}
+
+			r.DB.Table("products").
+				Where("id = ?", auction.ProductID).
+				Update("status", "Completed")
+		}
+
+		// Create auction-result notifications.
+		if r.NotificationService == nil {
+			continue
+		}
+
+		// Notify the winner if this notification does not already exist.
+		var winnerNotificationCount int64
+
+		r.DB.Model(&notifications.Notification{}).
+			Where(
+				"user_id = ? AND type = ? AND title = ? AND message = ?",
+				topBid.UserID,
+				"auction_won",
+				"Auction Won",
+				"You won the auction: "+auction.Title,
+			).
+			Count(&winnerNotificationCount)
+
+		if winnerNotificationCount == 0 {
+			if err := r.NotificationService.CreateNotification(
+				topBid.UserID,
+				"auction_won",
+				"Auction Won",
+				"You won the auction: "+auction.Title,
+			); err != nil {
+				log.Printf("Failed to notify auction winner for auction %d: %v", auction.ID, err)
+			}
+		}
+
+		// Notify the seller if this notification does not already exist.
+		var sellerNotificationCount int64
+
+		r.DB.Model(&notifications.Notification{}).
+			Where(
+				"user_id = ? AND type = ? AND title = ? AND message = ?",
+				auction.SellerID,
+				"auction_ended",
+				"Auction Ended",
+				"Your auction has ended: "+auction.Title,
+			).
+			Count(&sellerNotificationCount)
+
+		if sellerNotificationCount == 0 {
+			if err := r.NotificationService.CreateNotification(
+				auction.SellerID,
+				"auction_ended",
+				"Auction Ended",
+				"Your auction has ended: "+auction.Title,
+			); err != nil {
+				log.Printf("Failed to notify auction seller for auction %d: %v", auction.ID, err)
+			}
 		}
 	}
 }

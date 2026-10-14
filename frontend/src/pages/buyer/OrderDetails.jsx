@@ -98,7 +98,10 @@ function OrderDetails() {
     try {
       const res = await apiService.updateDeliveryAddress(token, order.id, address.trim());
       setActionMsg("🎉 Delivery address saved successfully!");
-      if (res.order) setOrder(res.order);
+      if (res.order) {
+        setOrder(res.order);
+        setAddress(res.order.deliveryAddress || "");
+      }
     } catch (err) {
       setActionErr(err.message || "Failed to update delivery address.");
     } finally {
@@ -232,7 +235,13 @@ function OrderDetails() {
 
   // Progress Stepper Order
   const steps = ["Pending Address", "Address Added", "Packed", "Shipped", "Delivered"];
-  const currentStepIndex = steps.indexOf(order.status) !== -1 ? steps.indexOf(order.status) : 0;
+  const displayStatus =
+    order.status === "confirmed"
+      ? order.deliveryAddress
+        ? "Address Added"
+        : "Pending Address"
+      : order.status;
+  const currentStepIndex = steps.indexOf(displayStatus) !== -1 ? steps.indexOf(displayStatus) : 0;
 
   return (
     <div className="container" style={{ padding: "2.5rem 1.5rem", maxWidth: "1050px", margin: "0 auto" }}>
@@ -249,15 +258,15 @@ function OrderDetails() {
         <span
           className="badge"
           style={{
-            background: order.status === "Delivered" ? "rgba(16, 185, 129, 0.15)" : order.status === "Cancelled" ? "rgba(239, 68, 68, 0.15)" : "rgba(99, 102, 241, 0.15)",
-            color: order.status === "Delivered" ? "#34d399" : order.status === "Cancelled" ? "#f87171" : "#a5b4fc",
-            border: `1px solid ${order.status === "Delivered" ? "rgba(16, 185, 129, 0.3)" : order.status === "Cancelled" ? "rgba(239, 68, 68, 0.3)" : "rgba(99, 102, 241, 0.3)"}`,
+            background: displayStatus === "Delivered" ? "rgba(16, 185, 129, 0.15)" : displayStatus === "Cancelled" ? "rgba(239, 68, 68, 0.15)" : "rgba(99, 102, 241, 0.15)",
+            color: displayStatus === "Delivered" ? "#34d399" : displayStatus === "Cancelled" ? "#f87171" : "#a5b4fc",
+            border: `1px solid ${displayStatus === "Delivered" ? "rgba(16, 185, 129, 0.3)" : displayStatus === "Cancelled" ? "rgba(239, 68, 68, 0.3)" : "rgba(99, 102, 241, 0.3)"}`,
             padding: "0.4rem 0.9rem",
             fontSize: "0.85rem",
             fontWeight: "700",
           }}
         >
-          Order Status • {order.status}
+          Order Status • {displayStatus}
         </span>
       </div>
 

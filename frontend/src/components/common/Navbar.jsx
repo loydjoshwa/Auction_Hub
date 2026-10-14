@@ -1,5 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import NotificationBell from "./NotificationBell";
 
 function Navbar() {
   const { user, isLoggedIn, logout } = useAuth();
@@ -153,6 +154,7 @@ function Navbar() {
         <div className="nav-user-info">
           {isLoggedIn ? (
             <>
+              {!isAdmin && <NotificationBell />}
               {isAdmin ? (
                 <Link to="/admin/profile" style={{ textDecoration: "none" }}>
                   <div

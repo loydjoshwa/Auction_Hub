@@ -331,6 +331,11 @@ func (r *Repository) CancelAuction(adminUserID uint, auctionID uint, reason stri
 		return nil, err
 	}
 
+	statusLower := strings.ToLower(auction.Status)
+	if statusLower == "completed" || statusLower == "ended" || statusLower == "cancelled" || time.Now().After(auction.EndTime) {
+		return nil, errors.New("Auction is already ended.")
+	}
+
 	auction.Status = "completed"
 	auction.EndTime = time.Now()
 	if err := r.DB.Save(&auction).Error; err != nil {
@@ -353,7 +358,8 @@ func (r *Repository) PauseAuction(adminUserID uint, auctionID uint, reason strin
 		return nil, err
 	}
 
-	if strings.ToLower(auction.Status) != "active" {
+	statusLower := strings.ToLower(auction.Status)
+	if statusLower != "active" || time.Now().After(auction.EndTime) {
 		return nil, errors.New("Only active auctions can be paused.")
 	}
 

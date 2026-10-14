@@ -3,38 +3,30 @@ package bids
 import (
 	"auction-hub/middleware"
 	"auction-hub/modules/auctions"
+	"auction-hub/modules/notifications"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(router *gin.RouterGroup) {
-
-	// Repositories
 	bidRepo := NewRepository()
 	auctionRepo := auctions.NewRepository()
+	notificationRepo := notifications.NewRepository()
 
-	// Service
-	service := NewService(
-		bidRepo,
-		auctionRepo,
-	)
+	notificationService := notifications.NewService(notificationRepo)
 
-	// Controller
-	controller := NewController(service)
+	bidService := NewService(bidRepo, auctionRepo)
+	bidService.NotificationService = notificationService
 
-	// Bid routes
+	bidController := NewController(bidService)
+
 	bidRoutes := router.Group("/bids")
 	bidRoutes.Use(middleware.AuthMiddleware())
 
 	{
-		// Place a bid
-		bidRoutes.POST("", controller.CreateBid)
-
-		// Get user's bid listings
-		bidRoutes.GET("/my", controller.GetMyBids)
-		bidRoutes.GET("/my-bids", controller.GetMyBids)
-
-		// Get bid history for an auction
-		bidRoutes.GET("/auction/:auctionId", controller.GetBidsByAuctionID)
+		bidRoutes.POST("", bidController.CreateBid)
+		bidRoutes.GET("/my", bidController.GetMyBids)
+		bidRoutes.GET("/my-bids", bidController.GetMyBids)
+		bidRoutes.GET("/auction/:auctionId", bidController.GetBidsByAuctionID)
 	}
 }

@@ -2,15 +2,29 @@ package orders
 
 import (
 	"auction-hub/middleware"
+	"auction-hub/modules/notifications"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(router *gin.RouterGroup) {
+	// Repository
 	repo := NewRepository()
+	notificationRepo := notifications.NewRepository()
+
+	// Notification service
+	notificationService := notifications.NewService(notificationRepo)
+
+	// Order service
 	service := NewService(repo)
+
+	// Connect notification service
+	service.NotificationService = notificationService
+
+	// Controller
 	controller := NewController(service)
 
+	// Order routes
 	orderRoutes := router.Group("/orders")
 	orderRoutes.Use(middleware.AuthMiddleware())
 

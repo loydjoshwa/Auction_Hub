@@ -285,8 +285,14 @@ function ManageAuctions() {
                 const title = auc.title || auc.product?.name || "Auction Item";
                 const img = auc.product?.imageUrl || "";
                 const statusLower = (auc.status || "").toLowerCase();
-                const isPaused = statusLower === "paused";
-                const isEnded = statusLower === "completed" || (statusLower === "active" && new Date(auc.endTime) <= new Date());
+                const isEnded =
+                  statusLower === "completed" ||
+                  statusLower === "ended" ||
+                  statusLower === "cancelled" ||
+                  statusLower === "closed" ||
+                  (statusLower !== "active" && statusLower !== "paused") ||
+                  (auc.endTime && new Date(auc.endTime) <= new Date());
+                const isPaused = !isEnded && statusLower === "paused";
 
                 return (
                   <tr key={auc.id} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}>

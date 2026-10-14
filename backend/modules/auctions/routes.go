@@ -2,6 +2,7 @@ package auctions
 
 import (
 	"auction-hub/middleware"
+	"auction-hub/modules/notifications"
 	"auction-hub/modules/products"
 
 	"github.com/gin-gonic/gin"
@@ -12,8 +13,15 @@ func RegisterRoutes(router *gin.RouterGroup) {
 	// Repositories
 	auctionRepo := NewRepository()
 	productRepo := products.NewRepository()
+	notificationRepo := notifications.NewRepository()
 
-	// Service
+	// Notification service
+	notificationService := notifications.NewService(notificationRepo)
+
+	// Connect notification service to auction repository
+	auctionRepo.NotificationService = notificationService
+
+	// Auction service
 	service := NewService(
 		auctionRepo,
 		productRepo,
@@ -27,24 +35,12 @@ func RegisterRoutes(router *gin.RouterGroup) {
 	auctionRoutes.Use(middleware.AuthMiddleware())
 
 	{
-		// Create an auction for the logged-in user's product
 		auctionRoutes.POST("", controller.CreateAuction)
-
-		// Get all active auctions
-		// Any authenticated user can view these.
 		auctionRoutes.GET("", controller.GetActiveAuctions)
-
-		// Get seller's created auctions
 		auctionRoutes.GET("/my-auctions", controller.GetMyAuctions)
 		auctionRoutes.GET("/seller", controller.GetMyAuctions)
-
-		// Get auctions won by buyer
 		auctionRoutes.GET("/won", controller.GetWonAuctions)
-
-		// Get details of a specific auction
 		auctionRoutes.GET("/:id", controller.GetAuctionByID)
-
-		// End an active auction manually (Seller only)
 		auctionRoutes.PATCH("/:id/end", controller.EndAuction)
 	}
 }

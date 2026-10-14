@@ -753,6 +753,58 @@ export const apiService = {
       },
     });
   },
+
+  /**
+   * Fetch all notifications for the logged-in user.
+   * GET /api/notifications
+   */
+  async getNotifications(token) {
+    return request("/api/notifications", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Fetch unread notification count.
+   * GET /api/notifications/unread-count
+   */
+  async getUnreadNotificationCount(token) {
+    return request("/api/notifications/unread-count", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Mark an individual notification as read.
+   * PATCH /api/notifications/:id/read
+   */
+  async markNotificationAsRead(token, notificationId) {
+    return request(`/api/notifications/${notificationId}/read`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  /**
+   * Mark all notifications as read.
+   * PATCH /api/notifications/read-all
+   */
+  async markAllNotificationsAsRead(token) {
+    return request("/api/notifications/read-all", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
 };
 
 export default apiService;

@@ -2,7 +2,11 @@ package orders
 
 import (
 	"errors"
+	"log"
+	"strconv"
 	"strings"
+
+	"auction-hub/modules/notifications"
 )
 
 var (
@@ -18,12 +22,45 @@ var (
 )
 
 type Service struct {
-	Repository *Repository
+	Repository          *Repository
+	NotificationService *notifications.Service
 }
 
 func NewService(repository *Repository) *Service {
 	return &Service{
 		Repository: repository,
+	}
+}
+
+// notifyOrderStatus creates an order notification.
+// Notification errors do not fail an already completed order update.
+func (s *Service) notifyOrderStatus(
+	userID uint,
+	orderID uint,
+	status string,
+) {
+	if s.NotificationService == nil || userID == 0 {
+		return
+	}
+
+	message := "Your order #" +
+		strconv.FormatUint(uint64(orderID), 10) +
+		" status is now " + status + "."
+
+	err := s.NotificationService.CreateNotification(
+		userID,
+		"order_update",
+		"Order Status Updated",
+		message,
+	)
+
+	if err != nil {
+		log.Printf(
+			"Failed to create order notification for user %d, order %d: %v",
+			userID,
+			orderID,
+			err,
+		)
 	}
 }
 
@@ -36,12 +73,15 @@ func (s *Service) GetMyOrders(userID uint) (map[string][]Order, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if buyerOrders == nil {
 		buyerOrders = []Order{}
 	}
+
 	if sellerOrders == nil {
 		sellerOrders = []Order{}
 	}
+
 	return map[string][]Order{
 		"buyerOrders":  buyerOrders,
 		"sellerOrders": sellerOrders,
@@ -56,20 +96,34 @@ func (s *Service) GetSellerOrders(userID uint) ([]Order, error) {
 	return s.Repository.GetSellerOrders(userID)
 }
 
-func (s *Service) GetOrderByID(orderID uint, userID uint, userRole string) (*Order, error) {
+func (s *Service) GetOrderByID(
+	orderID uint,
+	userID uint,
+	userRole string,
+) (*Order, error) {
 	order, err := s.Repository.GetOrderByID(orderID)
 	if err != nil {
 		return nil, ErrOrderNotFound
 	}
+
 	isAdmin := strings.ToLower(userRole) == "admin"
-	if order.BuyerID != userID && order.SellerID != userID && !isAdmin {
+
+	if order.BuyerID != userID &&
+		order.SellerID != userID &&
+		!isAdmin {
 		return nil, ErrUnauthorizedOrder
 	}
+
 	return order, nil
 }
 
-func (s *Service) UpdateDeliveryAddress(orderID uint, userID uint, address string) (*Order, error) {
+func (s *Service) UpdateDeliveryAddress(
+	orderID uint,
+	userID uint,
+	address string,
+) (*Order, error) {
 	address = strings.TrimSpace(address)
+
 	if address == "" {
 		return nil, ErrAddressRequired
 	}
@@ -83,49 +137,79 @@ func (s *Service) UpdateDeliveryAddress(orderID uint, userID uint, address strin
 		return nil, ErrOnlyBuyerAddress
 	}
 
-	// Address editing rule: permanently locked once order reaches Shipped or Delivered
+	// Address editing is locked once the order has shipped.
 	if order.Status == "Shipped" || order.Status == "Delivered" {
 		return nil, ErrAddressLocked
 	}
 
-	order.DeliveryAddress = address
 	oldStatus := order.Status
-	if order.Status == "Pending Address" {
+
+	order.DeliveryAddress = address
+
+	isInitialAddress := oldStatus == "Pending Address" ||
+		strings.ToLower(oldStatus) == "confirmed" ||
+		oldStatus == ""
+
+	if isInitialAddress {
 		order.Status = "Address Added"
 	}
 
-	err = s.Repository.UpdateOrder(order)
-	if err != nil {
+	if err := s.Repository.UpdateOrder(order); err != nil {
 		return nil, err
 	}
 
-	if oldStatus == "Pending Address" {
-		_ = s.Repository.AddTrackingHistory(order.ID, "Address Added", "Buyer", userID, "Delivery address provided by buyer")
+	if isInitialAddress {
+		_ = s.Repository.AddTrackingHistory(
+			order.ID,
+			"Address Added",
+			"Buyer",
+			userID,
+			"Delivery address provided by buyer",
+		)
+
+		// Notify the seller that the buyer added the address.
+		s.notifyOrderStatus(
+			order.SellerID,
+			order.ID,
+			"Address Added",
+		)
 	} else {
-		_ = s.Repository.AddTrackingHistory(order.ID, order.Status, "Buyer", userID, "Delivery address updated by buyer")
+		_ = s.Repository.AddTrackingHistory(
+			order.ID,
+			order.Status,
+			"Buyer",
+			userID,
+			"Delivery address updated by buyer",
+		)
 	}
 
 	return s.Repository.GetOrderByID(order.ID)
 }
 
-func (s *Service) MarkAsPacked(orderID uint, userID uint, userRole string) (*Order, error) {
+func (s *Service) MarkAsPacked(
+	orderID uint,
+	userID uint,
+	userRole string,
+) (*Order, error) {
 	order, err := s.Repository.GetOrderByID(orderID)
 	if err != nil {
 		return nil, ErrOrderNotFound
 	}
 
 	isAdmin := strings.ToLower(userRole) == "admin"
+
 	if order.SellerID != userID && !isAdmin {
 		return nil, ErrOnlySellerPack
 	}
 
-	if order.Status != "Address Added" && order.Status != "Pending Address" {
+	if order.Status != "Address Added" &&
+		order.Status != "Pending Address" {
 		return nil, ErrInvalidStatusFlow
 	}
 
 	order.Status = "Packed"
-	err = s.Repository.UpdateOrder(order)
-	if err != nil {
+
+	if err := s.Repository.UpdateOrder(order); err != nil {
 		return nil, err
 	}
 
@@ -133,18 +217,33 @@ func (s *Service) MarkAsPacked(orderID uint, userID uint, userRole string) (*Ord
 	if isAdmin {
 		updaterRole = "Admin"
 	}
-	_ = s.Repository.AddTrackingHistory(order.ID, "Packed", updaterRole, userID, "Order packed for shipment")
+
+	_ = s.Repository.AddTrackingHistory(
+		order.ID,
+		"Packed",
+		updaterRole,
+		userID,
+		"Order packed for shipment",
+	)
+
+	// Notify the buyer.
+	s.notifyOrderStatus(order.BuyerID, order.ID, "Packed")
 
 	return s.Repository.GetOrderByID(order.ID)
 }
 
-func (s *Service) MarkAsShipped(orderID uint, userID uint, userRole string) (*Order, error) {
+func (s *Service) MarkAsShipped(
+	orderID uint,
+	userID uint,
+	userRole string,
+) (*Order, error) {
 	order, err := s.Repository.GetOrderByID(orderID)
 	if err != nil {
 		return nil, ErrOrderNotFound
 	}
 
 	isAdmin := strings.ToLower(userRole) == "admin"
+
 	if order.SellerID != userID && !isAdmin {
 		return nil, ErrOnlySellerShip
 	}
@@ -154,8 +253,8 @@ func (s *Service) MarkAsShipped(orderID uint, userID uint, userRole string) (*Or
 	}
 
 	order.Status = "Shipped"
-	err = s.Repository.UpdateOrder(order)
-	if err != nil {
+
+	if err := s.Repository.UpdateOrder(order); err != nil {
 		return nil, err
 	}
 
@@ -163,12 +262,25 @@ func (s *Service) MarkAsShipped(orderID uint, userID uint, userRole string) (*Or
 	if isAdmin {
 		updaterRole = "Admin"
 	}
-	_ = s.Repository.AddTrackingHistory(order.ID, "Shipped", updaterRole, userID, "Handed over to courier")
+
+	_ = s.Repository.AddTrackingHistory(
+		order.ID,
+		"Shipped",
+		updaterRole,
+		userID,
+		"Handed over to courier",
+	)
+
+	// Notify the buyer.
+	s.notifyOrderStatus(order.BuyerID, order.ID, "Shipped")
 
 	return s.Repository.GetOrderByID(order.ID)
 }
 
-func (s *Service) MarkAsDelivered(orderID uint, userID uint) (*Order, error) {
+func (s *Service) MarkAsDelivered(
+	orderID uint,
+	userID uint,
+) (*Order, error) {
 	order, err := s.Repository.GetOrderByID(orderID)
 	if err != nil {
 		return nil, ErrOrderNotFound
@@ -183,18 +295,33 @@ func (s *Service) MarkAsDelivered(orderID uint, userID uint) (*Order, error) {
 	}
 
 	order.Status = "Delivered"
-	err = s.Repository.UpdateOrder(order)
-	if err != nil {
+
+	if err := s.Repository.UpdateOrder(order); err != nil {
 		return nil, err
 	}
 
-	_ = s.Repository.AddTrackingHistory(order.ID, "Delivered", "Buyer", userID, "Confirmed delivery received")
+	_ = s.Repository.AddTrackingHistory(
+		order.ID,
+		"Delivered",
+		"Buyer",
+		userID,
+		"Confirmed delivery received",
+	)
+
+	// Notify the seller.
+	s.notifyOrderStatus(order.SellerID, order.ID, "Delivered")
 
 	return s.Repository.GetOrderByID(order.ID)
 }
 
-func (s *Service) UpdateOrderStatusByAdmin(orderID uint, adminUserID uint, newStatus string, reason string) (*Order, error) {
+func (s *Service) UpdateOrderStatusByAdmin(
+	orderID uint,
+	adminUserID uint,
+	newStatus string,
+	reason string,
+) (*Order, error) {
 	reason = strings.TrimSpace(reason)
+
 	if reason == "" {
 		return nil, errors.New("A reason is required to update order status.")
 	}
@@ -214,17 +341,32 @@ func (s *Service) UpdateOrderStatusByAdmin(orderID uint, adminUserID uint, newSt
 	}
 
 	newStatus = strings.TrimSpace(newStatus)
+
 	if !validStatuses[newStatus] {
 		return nil, errors.New("Invalid status value.")
 	}
 
+	oldStatus := order.Status
+
 	order.Status = newStatus
-	err = s.Repository.UpdateOrder(order)
-	if err != nil {
+
+	if err := s.Repository.UpdateOrder(order); err != nil {
 		return nil, err
 	}
 
-	_ = s.Repository.AddTrackingHistory(order.ID, newStatus, "Admin", adminUserID, reason)
+	_ = s.Repository.AddTrackingHistory(
+		order.ID,
+		newStatus,
+		"Admin",
+		adminUserID,
+		reason,
+	)
+
+	// Notify both participants when the status actually changes.
+	if oldStatus != newStatus {
+		s.notifyOrderStatus(order.BuyerID, order.ID, newStatus)
+		s.notifyOrderStatus(order.SellerID, order.ID, newStatus)
+	}
 
 	return s.Repository.GetOrderByID(order.ID)
 }

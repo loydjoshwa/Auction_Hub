@@ -282,8 +282,8 @@ func (c *Controller) CancelAuction(ctx *gin.Context) {
 			})
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to cancel auction",
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
 		})
 		return
 	}
